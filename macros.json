@@ -1,0 +1,64 @@
+{
+  "grandparent_1": {
+    "name": "Media Controls",
+    "children": {
+      "parent_1": {
+        "name": "Playback",
+        "children": {
+          "macro_1": {
+            "name": "Play/Pause",
+            "action": "send:{Media_Play_Pause}"
+          },
+          "macro_2": {
+            "name": "Next Track",
+            "action": "send:{Media_Next}"
+          },
+          "macro_3": {
+            "name": "Previous Track",
+            "action": "send:{Media_Prev}"
+          }
+        }
+      },
+      "parent_2": {
+        "name": "Browser",
+        "children": {
+          "macro_4": {
+            "name": "New Tab",
+            "action": "send:^t"
+          },
+          "macro_5": {
+            "name": "Close Tab",
+            "action": "send:^w"
+          }
+        }
+      }
+    }
+  },
+  "grandparent_2": {
+    "name": "Productivity",
+    "children": {
+      "parent_3": {
+        "name": "Shortcuts",
+        "children": {
+          "macro_6": {
+            "name": "Copy",
+            "action": "send:^c"
+          },
+          "macro_7": {
+            "name": "Paste",
+            "action": "send:^v"
+          }
+        }
+      }
+    }
+  },
+  "macro_4bd1": {
+    "name": "test",
+    "children": {
+      "macro_7c12": {
+        "name": "New Macro",
+        "action": "send:"
+      }
+    }
+  }
+}
