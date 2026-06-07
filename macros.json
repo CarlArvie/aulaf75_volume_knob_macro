@@ -70,6 +70,10 @@
             "action": "run:https://youtube.com/"
           }
         }
+      },
+      "category_0524": {
+        "name": "New Category",
+        "children": {}
       }
     }
   },
@@ -137,17 +141,8 @@
       }
     }
   },
-  "cat_folders": {
-    "name": "Folders",
-    "children": {
-      "fol_1": {
-        "name": "Macropad Folder",
-        "action": "run:C:\\Users\\carla\\Desktop\\macropad\\Macropad.ahk"
-      },
-      "fol_2": {
-        "name": "Startup Folder",
-        "action": "run:C:\\Users\\carla\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
-      }
-    }
+  "category_0dce": {
+    "name": "folder",
+    "children": {}
   }
 }

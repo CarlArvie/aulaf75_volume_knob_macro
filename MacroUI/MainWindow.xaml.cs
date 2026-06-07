@@ -11,6 +11,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using MessageBox = System.Windows.MessageBox;
 using Point = System.Windows.Point;
@@ -308,7 +309,7 @@ namespace MacroUI
             foreach (var kvp in _currentNode.Children)
             {
                 bool isSelected = (i == _selectedIndex);
-                DrawSlice(cx, cy, MenuRadius, MenuInnerRadius, i * angleStep, (i + 1) * angleStep, isSelected, kvp.Value.Name);
+                DrawSlice(cx, cy, MenuRadius, MenuInnerRadius, i * angleStep, (i + 1) * angleStep, isSelected, kvp.Value.Name, kvp.Value.ImagePath);
                 i++;
             }
 
@@ -318,7 +319,7 @@ namespace MacroUI
             DrawSlice(cx, cy, MenuRadius, MenuInnerRadius, i * angleStep, (i + 1) * angleStep, isBackSelected, backText);
         }
 
-        private void DrawSlice(double cx, double cy, double baseRadius, double innerRadius, double startAngle, double endAngle, bool isSelected, string text)
+        private void DrawSlice(double cx, double cy, double baseRadius, double innerRadius, double startAngle, double endAngle, bool isSelected, string text, string imagePath = null)
         {
             // Apply Gap
             double adjustedStartAngle = startAngle + (SliceGapAngle / 2);
@@ -379,10 +380,37 @@ namespace MacroUI
 
             MainCanvas.Children.Add(path);
 
-            // Draw Text
+            // Draw Image and Text
             double midAngle = (adjustedStartAngle + adjustedEndAngle) / 2.0;
             double midRad = midAngle * Math.PI / 180.0;
             double textRadius = (radius + innerRadius) / 2.0;
+
+            if (!string.IsNullOrEmpty(imagePath))
+            {
+                try
+                {
+                    string fullImagePath = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", imagePath));
+                    if (File.Exists(fullImagePath))
+                    {
+                        var bitmap = new BitmapImage(new Uri(fullImagePath));
+                        ImageBrush imgBrush = new ImageBrush
+                        {
+                            ImageSource = bitmap,
+                            Stretch = Stretch.UniformToFill
+                        };
+
+                        System.Windows.Shapes.Path imgPath = new System.Windows.Shapes.Path
+                        {
+                            Data = geom,
+                            Fill = imgBrush,
+                            Opacity = isSelected ? 1.0 : 0.3
+                        };
+
+                        MainCanvas.Children.Add(imgPath);
+                    }
+                }
+                catch { }
+            }
 
             TextBlock tb = new TextBlock
             {

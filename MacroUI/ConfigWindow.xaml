@@ -201,6 +201,15 @@
                                 <TextBox x:Name="TextTextBox" TextChanged="RawField_TextChanged" FontSize="15" Padding="10" AcceptsReturn="True" Height="120" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
                             </StackPanel>
 
+                            <StackPanel Margin="0,20,0,0">
+                                <TextBlock Text="Slice Background Image" FontSize="14" FontWeight="SemiBold"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                    <Button Content="Browse Image..." Click="BrowseImage_Click" Padding="10,5" />
+                                    <Button Content="Clear Image" Click="ClearImage_Click" Padding="10,5" Margin="5,0,0,0" Background="#333" Foreground="#CCC" />
+                                </StackPanel>
+                                <TextBlock x:Name="ImagePathTextBlock" Text="No image selected." FontSize="12" Foreground="#888" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+
                             <Grid Margin="0,20,0,0">
                                 <Button Content="🗑️ Delete Node" Background="#C50B0B" HorizontalAlignment="Left" Click="Delete_Click" Padding="20,12" FontSize="14"/>
                             </Grid>

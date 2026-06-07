@@ -135,12 +135,14 @@ namespace MacroUI
                     ProgramPanel.Visibility = Visibility.Visible;
                     ProgramTextBox.Text = _selectedNode.RawActionValue;
                 }
-                else if (_selectedNode.MacroType == "SendText")
+                if (_selectedNode.MacroType == "SendText")
                 {
                     TextPanel.Visibility = Visibility.Visible;
                     TextTextBox.Text = _selectedNode.RawActionValue;
                 }
                 
+                ImagePathTextBlock.Text = string.IsNullOrWhiteSpace(_selectedNode.ImagePath) ? "No image selected." : _selectedNode.ImagePath;
+
                 _isUpdatingUI = false;
             }
             else
@@ -190,6 +192,75 @@ namespace MacroUI
         private void CenterTitle_TextChanged(object sender, TextChangedEventArgs e)
         {
             // Do nothing, just capturing so xaml compiles. We save on Save_Click.
+        }
+
+        private void DeleteOldImage(string relativePath)
+        {
+            if (!string.IsNullOrEmpty(relativePath))
+            {
+                try
+                {
+                    string fullPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", relativePath));
+                    if (File.Exists(fullPath))
+                    {
+                        File.Delete(fullPath);
+                    }
+                }
+                catch { } // Ignore if locked or missing
+            }
+        }
+
+        private void BrowseImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedNode == null) return;
+            
+            var dlg = new Microsoft.Win32.OpenFileDialog();
+            dlg.Filter = "Image Files (*.png;*.jpg;*.jpeg;*.ico)|*.png;*.jpg;*.jpeg;*.ico|All Files (*.*)|*.*";
+            
+            if (dlg.ShowDialog() == true)
+            {
+                try
+                {
+                    string imagesDir = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "Images"));
+                    if (!Directory.Exists(imagesDir))
+                    {
+                        Directory.CreateDirectory(imagesDir);
+                    }
+                    
+                    string ext = System.IO.Path.GetExtension(dlg.FileName);
+                    string newFileName = Guid.NewGuid().ToString() + ext;
+                    string newPath = System.IO.Path.Combine(imagesDir, newFileName);
+                    
+                    File.Copy(dlg.FileName, newPath, true);
+                    
+                    // Delete old image if one existed
+                    if (!string.IsNullOrEmpty(_selectedNode.ImagePath))
+                    {
+                        DeleteOldImage(_selectedNode.ImagePath);
+                    }
+                    
+                    string relativePath = System.IO.Path.Combine("Images", newFileName);
+                    _selectedNode.ImagePath = relativePath;
+                    ImagePathTextBlock.Text = relativePath;
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show("Failed to copy image: " + ex.Message);
+                }
+            }
+        }
+
+        private void ClearImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedNode != null)
+            {
+                if (!string.IsNullOrEmpty(_selectedNode.ImagePath))
+                {
+                    DeleteOldImage(_selectedNode.ImagePath);
+                }
+                _selectedNode.ImagePath = null;
+                ImagePathTextBlock.Text = "No image selected.";
+            }
         }
 
         private void EditNode_Click(object sender, RoutedEventArgs e)
@@ -405,6 +476,13 @@ namespace MacroUI
             set { _name = value; OnPropertyChanged(nameof(Name)); }
         }
 
+        private string _imagePath;
+        public string ImagePath
+        {
+            get => _imagePath;
+            set { _imagePath = value; OnPropertyChanged(nameof(ImagePath)); }
+        }
+
         private string _action;
         public string Action
         {
@@ -486,6 +564,7 @@ namespace MacroUI
             Parent = parent;
             Name = node.Name;
             Action = node.Action;
+            ImagePath = node.ImagePath;
             ParseAction();
             if (node.Children != null)
             {
@@ -498,7 +577,7 @@ namespace MacroUI
 
         public MacroNode ToMacroNode()
         {
-            var node = new MacroNode { Name = Name, Action = (MacroType == "Category") ? null : Action };
+            var node = new MacroNode { Name = Name, Action = (MacroType == "Category") ? null : Action, ImagePath = ImagePath };
             if (Children.Count > 0 || MacroType == "Category")
             {
                 node.Children = new Dictionary<string, MacroNode>();

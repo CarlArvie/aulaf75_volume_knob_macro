@@ -3,7 +3,7 @@
 SendAsPaste("carlarvie0@gmail.com")
 return
 ::.ea::
-SendAsPaste("arvielambit@gmail.com`r`n")
+SendAsPaste("arvielambit@gmail.com")
 return
 ::.ec09::
 SendAsPaste("carlarvie09@gmail.com")
