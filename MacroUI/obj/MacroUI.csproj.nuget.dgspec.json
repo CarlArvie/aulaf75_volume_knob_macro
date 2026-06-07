@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\carla\\Desktop\\AHK\\Aula f70 macro\\Macroui\\MacroUI.csproj": {}
+    "C:\\Users\\carla\\Desktop\\AHK\\Aula f70 macro\\macroui\\MacroUI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\carla\\Desktop\\AHK\\Aula f70 macro\\Macroui\\MacroUI.csproj": {
+    "C:\\Users\\carla\\Desktop\\AHK\\Aula f70 macro\\macroui\\MacroUI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\carla\\Desktop\\AHK\\Aula f70 macro\\Macroui\\MacroUI.csproj",
+        "projectUniqueName": "C:\\Users\\carla\\Desktop\\AHK\\Aula f70 macro\\macroui\\MacroUI.csproj",
         "projectName": "MacroUI",
-        "projectPath": "C:\\Users\\carla\\Desktop\\AHK\\Aula f70 macro\\Macroui\\MacroUI.csproj",
+        "projectPath": "C:\\Users\\carla\\Desktop\\AHK\\Aula f70 macro\\macroui\\MacroUI.csproj",
         "packagesPath": "C:\\Users\\carla\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\carla\\Desktop\\AHK\\Aula f70 macro\\Macroui\\obj\\",
+        "outputPath": "C:\\Users\\carla\\Desktop\\AHK\\Aula f70 macro\\macroui\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\carla\\AppData\\Roaming\\NuGet\\NuGet.Config"

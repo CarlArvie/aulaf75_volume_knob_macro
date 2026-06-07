@@ -1,0 +1,22 @@
+[
+  {
+    "Trigger": ".ec0",
+    "Replacement": "carlarvie0@gmail.com"
+  },
+  {
+    "Trigger": ".ea",
+    "Replacement": "arvielambit@gmail.com\r\n"
+  },
+  {
+    "Trigger": ".ec09",
+    "Replacement": "carlarvie09@gmail.com"
+  },
+  {
+    "Trigger": ".ec9",
+    "Replacement": "carlarvie9@gmail.com"
+  },
+  {
+    "Trigger": ".eax9",
+    "Replacement": "aciexie9@gmail.com"
+  }
+]

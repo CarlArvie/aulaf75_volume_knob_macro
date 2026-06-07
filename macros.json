@@ -1,63 +1,152 @@
 {
-  "grandparent_1": {
-    "name": "Media Controls",
+  "cat_websites": {
+    "name": "Websites",
     "children": {
-      "parent_1": {
-        "name": "Playback",
-        "children": {
-          "macro_1": {
-            "name": "Play/Pause",
-            "action": "send:{Media_Play_Pause}"
-          },
-          "macro_2": {
-            "name": "Next Track",
-            "action": "send:{Media_Next}"
-          },
-          "macro_3": {
-            "name": "Previous Track",
-            "action": "send:{Media_Prev}"
-          }
-        }
+      "web_1": {
+        "name": "Google Calendar",
+        "action": "run:https://calendar.google.com"
       },
-      "parent_2": {
-        "name": "Browser",
+      "web_2": {
+        "name": "Gmail",
+        "action": "run:https://mail.google.com/mail/u/0/#inbox"
+      },
+      "web_3": {
+        "name": "Tasks",
+        "action": "run:https://calendar.google.com/calendar/u/0/r/tasks"
+      },
+      "web_4": {
+        "name": "Chat GPT",
+        "action": "run:https://chatgpt.com/?temporary-chat=true\u0026model=gpt-4o-mini"
+      },
+      "web_5": {
+        "name": "Claude",
+        "action": "run:https://claude.ai/new"
+      },
+      "web_6": {
+        "name": "Liner Research",
+        "action": "run:https://getliner.com/"
+      },
+      "cat_otherwebs": {
+        "name": "Other Websites",
         "children": {
-          "macro_4": {
-            "name": "New Tab",
-            "action": "send:^t"
+          "ow_1": {
+            "name": "AHK Forum",
+            "action": "run:https://www.autohotkey.com/boards/viewforum.php?f=4"
           },
-          "macro_5": {
-            "name": "Close Tab",
-            "action": "send:^w"
+          "ow_2": {
+            "name": "Drive",
+            "action": "run:https://drive.google.com/"
+          },
+          "ow_3": {
+            "name": "Docs",
+            "action": "run:https://docs.google.com/"
+          },
+          "ow_4": {
+            "name": "Keep",
+            "action": "run:https://keep.google.com/"
+          },
+          "ow_5": {
+            "name": "Photos",
+            "action": "run:https://photos.google.com/"
+          },
+          "ow_6": {
+            "name": "Notebook LM",
+            "action": "run:https://notebooklm.google.com/"
+          },
+          "ow_7": {
+            "name": "Maps",
+            "action": "run:https://maps.google.com/"
+          },
+          "ow_8": {
+            "name": "Sheets",
+            "action": "run:https://sheets.google.com/"
+          },
+          "ow_9": {
+            "name": "Slides",
+            "action": "run:https://slides.google.com/"
+          },
+          "ow_10": {
+            "name": "YouTube",
+            "action": "run:https://youtube.com/"
           }
         }
       }
     }
   },
-  "grandparent_2": {
-    "name": "Productivity",
+  "cat_programs": {
+    "name": "Programs",
     "children": {
-      "parent_3": {
-        "name": "Shortcuts",
-        "children": {
-          "macro_6": {
-            "name": "Copy",
-            "action": "send:^c"
-          },
-          "macro_7": {
-            "name": "Paste",
-            "action": "send:^v"
-          }
-        }
+      "prog_1": {
+        "name": "VS Code",
+        "action": "run:C:\\Users\\carla\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe"
+      },
+      "prog_2": {
+        "name": "XAMPP",
+        "action": "run:C:\\xampp\\xampp-control.exe"
+      },
+      "prog_3": {
+        "name": "Chrome",
+        "action": "run:C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
       }
     }
   },
-  "macro_4bd1": {
-    "name": "test",
+  "cat_scripts": {
+    "name": "AHK Scripts",
     "children": {
-      "macro_7c12": {
-        "name": "New Macro",
-        "action": "send:"
+      "scr_1": {
+        "name": "Starter",
+        "action": "run:C:\\Users\\carla\\Desktop\\macropad\\test\\Starter.ahk"
+      }
+    }
+  },
+  "cat_winset": {
+    "name": "Windows Settings",
+    "children": {
+      "ws_1": {
+        "name": "Display Settings",
+        "action": "run:ms-settings:display"
+      },
+      "ws_2": {
+        "name": "Bluetooth",
+        "action": "run:ms-settings:bluetooth"
+      },
+      "ws_3": {
+        "name": "Night Light",
+        "action": "run:ms-settings:nightlight"
+      }
+    }
+  },
+  "cat_snippets": {
+    "name": "Snippets",
+    "children": {
+      "snip_1": {
+        "name": "^Backspace",
+        "action": "sendtext:Send(\u0022^\u002B{Left}{Backspace}\u0022)"
+      },
+      "snip_2": {
+        "name": "Get Mouse Pos",
+        "action": "sendtext:CoordMode(\u0022Mouse\u0022, \u0022Screen\u0022)\r\nMouseGetPos(\u0026mouseX, \u0026mouseY)"
+      },
+      "snip_3": {
+        "name": "Return Mouse Pos",
+        "action": "sendtext:MouseMove(mouseX, mouseY, 0)"
+      },
+      "snip_4": {
+        "name": "Try block",
+        "action": "sendtext:Try{\r\n\r\n; }"
+      }
+    }
+  },
+  "cat_folders": {
+    "name": "Folders",
+    "children": {
+      "fol_1": {
+        "name": "Macropad Folder",
+        "action": "run:C:\\Users\\carla\\Desktop\\macropad\\Macropad.ahk"
+      },
+      "fol_2": {
+        "name": "Startup Folder",
+        "action": "run:C:\\Users\\carla\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
       }
     }
   }

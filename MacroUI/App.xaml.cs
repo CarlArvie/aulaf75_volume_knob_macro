@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms;
 using Application = System.Windows.Application;
@@ -10,6 +11,21 @@ namespace MacroUI
 {
     public partial class App : Application
     {
+        [DllImport("kernel32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetProcessWorkingSetSize(IntPtr process, UIntPtr minimumWorkingSetSize, UIntPtr maximumWorkingSetSize);
+
+        public static void MinimizeMemoryFootprint()
+        {
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+            GC.WaitForPendingFinalizers();
+            try
+            {
+                SetProcessWorkingSetSize(Process.GetCurrentProcess().Handle, (UIntPtr)unchecked((uint)-1), (UIntPtr)unchecked((uint)-1));
+            }
+            catch { }
+        }
+
         private NotifyIcon _notifyIcon;
         private Process _ahkProcess;
 

@@ -49,6 +49,7 @@ namespace MacroUI
 
             LoadConfig();
             this.Opacity = 0;
+            this.Visibility = Visibility.Hidden;
 
             Task.Run(StartNamedPipeServer);
         }
@@ -57,10 +58,7 @@ namespace MacroUI
         {
             try
             {
-                string jsonPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "macros.json");
-                if (!File.Exists(jsonPath))
-                    jsonPath = "macros.json";
-
+                string jsonPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "macros.json"));
                 string json = File.ReadAllText(jsonPath);
                 var rootDict = JsonSerializer.Deserialize<Dictionary<string, MacroNode>>(json);
                 _rootNode = new MacroNode { Name = "Root", Children = rootDict };
@@ -83,14 +81,25 @@ namespace MacroUI
             }
         }
 
-        private void AnimateVisibility(bool show)
+        private async void AnimateVisibility(bool show)
         {
+            if (show)
+            {
+                this.Visibility = Visibility.Visible;
+            }
+
             DoubleAnimation anim = new DoubleAnimation
             {
                 To = show ? 1.0 : 0.0,
                 Duration = TimeSpan.FromMilliseconds(200),
                 EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
             };
+
+            if (!show)
+            {
+                anim.Completed += (s, e) => { this.Visibility = Visibility.Hidden; };
+            }
+
             this.BeginAnimation(Window.OpacityProperty, anim);
 
             DoubleAnimation scaleAnim = new DoubleAnimation
@@ -104,6 +113,12 @@ namespace MacroUI
             {
                 st.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
                 st.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+            }
+
+            if (!show)
+            {
+                await Task.Delay(300); // Wait for animation to finish
+                App.MinimizeMemoryFootprint();
             }
         }
 
@@ -255,10 +270,27 @@ namespace MacroUI
             Canvas.SetTop(centerHub, cy - centerHub.Height / 2);
             MainCanvas.Children.Add(centerHub);
 
+            // Read Center Text from Settings
+            string centerTitleText = "AULA";
+            try
+            {
+                string settingsPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "settings.json"));
+                if (File.Exists(settingsPath))
+                {
+                    string settingsJson = File.ReadAllText(settingsPath);
+                    var settings = JsonSerializer.Deserialize<Dictionary<string, string>>(settingsJson);
+                    if (settings != null && settings.ContainsKey("CenterTitle") && !string.IsNullOrWhiteSpace(settings["CenterTitle"]))
+                    {
+                        centerTitleText = settings["CenterTitle"];
+                    }
+                }
+            }
+            catch { }
+
             // Draw center text
             var centerText = new TextBlock
             {
-                Text = _currentNode.Name == "Root" ? "AULA" : _currentNode.Name.ToUpper(),
+                Text = _currentNode.Name == "Root" ? centerTitleText : _currentNode.Name.ToUpper(),
                 Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 200, 255)), // Cyan accent
                 FontSize = 20,
                 FontWeight = FontWeights.Bold,
