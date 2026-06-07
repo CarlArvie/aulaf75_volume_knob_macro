@@ -10,7 +10,10 @@ SendMode Input
 global pipePath := "\\.\pipe\MacroUIPipe"
 global pipeClient := ""
 
-SetTimer, CheckExecute, 100
+DetectHiddenWindows, On
+WinSetTitle, ahk_id %A_ScriptHwnd%, , AulaMacroEngine_IPC
+OnMessage(0x004A, "Receive_WM_COPYDATA") ; WM_COPYDATA = 0x004A
+
 SetTimer, CheckUI, 2000
 
 IniRead, SelectHotkey, %A_ScriptDir%\settings.ini, Hotkeys, Select, Volume_Mute
@@ -47,19 +50,20 @@ SendCommand(cmd) {
     }
 }
 
-CheckExecute:
-IfExist, execute.txt
-{
-    FileRead, macroId, execute.txt
-    FileDelete, execute.txt
-    ExecuteMacro(Trim(macroId))
+Receive_WM_COPYDATA(wParam, lParam) {
+    ; Retrieves the CopyDataStruct's lpData member.
+    StringAddress := NumGet(lParam + 2*A_PtrSize)
+    ; Copy the string out of the structure (AHK v1.1 Unicode expects UTF-16)
+    action := StrGet(StringAddress)
+    ExecuteMacro(Trim(action))
+    return true
 }
-return
 
 ExecuteMacro(action) {
     ; Handle the execution based on the action string sent from C#
-    prefix5 := SubStr(action, 1, 5)
     prefix4 := SubStr(action, 1, 4)
+    prefix5 := SubStr(action, 1, 5)
+    prefix8 := SubStr(action, 1, 8)
     prefix9 := SubStr(action, 1, 9)
 
     if (prefix5 == "send:") {
@@ -83,6 +87,15 @@ ExecuteMacro(action) {
             SendMessage, 0x112, 0xF170, 2,, Program Manager
         } else if (cmd == "PlayPauseMedia") {
             Send {Media_Play_Pause}
+        } else if (cmd == "LogOff") {
+            Shutdown, 0
+        }
+    } else if (prefix8 == "suspend:") {
+        cmd := Trim(SubStr(action, 9))
+        if (cmd == "on") {
+            Suspend, On
+        } else if (cmd == "off") {
+            Suspend, Off
         }
     } else if (prefix4 == "ahk:") {
         cmd := Trim(SubStr(action, 5))

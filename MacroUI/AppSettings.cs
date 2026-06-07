@@ -22,5 +22,17 @@ namespace MacroUI
 
         [JsonPropertyName("backKey")]
         public string BackKey { get; set; } = "RButton";
+
+        [JsonPropertyName("enableGameMode")]
+        public bool EnableGameMode { get; set; } = false;
+
+        [JsonPropertyName("enableAudio")]
+        public bool EnableAudio { get; set; } = true;
+
+        [JsonPropertyName("tickSoundPath")]
+        public string TickSoundPath { get; set; } = @"C:\Windows\Media\Windows Menu Command.wav";
+
+        [JsonPropertyName("tickSoundVolume")]
+        public double TickSoundVolume { get; set; } = 0.6;
     }
 }

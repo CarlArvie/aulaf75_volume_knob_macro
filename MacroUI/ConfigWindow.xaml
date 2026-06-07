@@ -7,6 +7,7 @@
         FontFamily="Segoe UI">
     
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Style TargetType="Button">
             <Setter Property="Background" Value="#333333"/>
             <Setter Property="Foreground" Value="White"/>
@@ -42,6 +43,7 @@
             <Setter Property="Foreground" Value="#E0E0E0"/>
             <Setter Property="Margin" Value="0,0,0,5"/>
         </Style>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <Style TargetType="TreeView">
             <Setter Property="Background" Value="#252526"/>
             <Setter Property="Foreground" Value="White"/>
@@ -99,14 +101,23 @@
                 <Grid Grid.Column="0" MouseDown="LeftPanel_MouseDown" Background="Transparent">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     
-                    <TextBlock Text="Macro Hierarchy" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" Foreground="#007ACC"/>
+                    <TextBlock Text="Macro Hierarchy" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,5" Foreground="#007ACC"/>
                     
-                    <Border Grid.Row="1" BorderBrush="#333" BorderThickness="1" CornerRadius="6" Background="#252526" Margin="0,0,0,15">
-                        <TreeView x:Name="MacroTreeView" SelectedItemChanged="MacroTreeView_SelectedItemChanged" BorderThickness="0" Background="Transparent">
+                    <TextBox x:Name="MacroSearchBox" Grid.Row="1" TextChanged="MacroSearchBox_TextChanged" Margin="0,0,0,10" Padding="8" Background="#2D2D30" Foreground="White" BorderBrush="#3E3E42" BorderThickness="1"/>
+                    <TextBlock Grid.Row="1" Text="🔍 Search Macros..." IsHitTestVisible="False" Foreground="#888" Margin="8,8,0,0" x:Name="MacroSearchPlaceholder"/>
+
+                    <Border Grid.Row="2" BorderBrush="#333" BorderThickness="1" CornerRadius="6" Background="#252526" Margin="0,0,0,15">
+                        <TreeView x:Name="MacroTreeView" SelectedItemChanged="MacroTreeView_SelectedItemChanged" BorderThickness="0" Background="Transparent" AllowDrop="True" PreviewMouseLeftButtonDown="TreeView_PreviewMouseLeftButtonDown" MouseMove="TreeView_MouseMove" DragEnter="TreeView_DragEnter" Drop="TreeView_Drop">
+                            <TreeView.ItemContainerStyle>
+                                <Style TargetType="TreeViewItem">
+                                    <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BoolToVis}}"/>
+                                </Style>
+                            </TreeView.ItemContainerStyle>
                             <TreeView.ItemTemplate>
                                 <HierarchicalDataTemplate ItemsSource="{Binding Children}">
                                     <StackPanel Orientation="Horizontal" Margin="2,4" Background="Transparent">
@@ -128,7 +139,7 @@
                         </TreeView>
                     </Border>
                     
-                    <StackPanel Grid.Row="2" Orientation="Vertical" HorizontalAlignment="Stretch" Margin="0,15,0,0">
+                    <StackPanel Grid.Row="3" Orientation="Vertical" HorizontalAlignment="Stretch" Margin="0,15,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Button Content="📁 + Category" Click="AddCategory_Click"/>
                             <Button Content="⚡ + Macro" Click="AddMacro_Click"/>
@@ -196,6 +207,7 @@
                                     <ComboBoxItem Content="💻 System Command" Tag="SystemCommand"/>
                                 </ComboBox>
 
+                                <CheckBox x:Name="SecureMacroCheckBox" Content="🔒 Encrypt Payload on Disk" IsChecked="{Binding IsSelectedNode.IsSecure, ElementName=RootWindow}" Foreground="#FFF" Margin="0,0,0,15" ToolTip="If checked, the payload string will be AES-encrypted in the macros.json file."/>
                                 <StackPanel x:Name="TargetProcessPanel" Visibility="Collapsed" Margin="0,0,0,15">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="Target Process" FontSize="14" FontWeight="SemiBold"/>
@@ -303,21 +315,24 @@
             <Grid Margin="10,20,10,10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                
+
                 <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                    <TextBlock Text="Background Text Detectors" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,5"/>
-                    <TextBlock Text="Configure text snippets that automatically expand when you type their trigger keyword." FontSize="14" Foreground="#888"/>
-                    <TextBlock Text="Tip: Use variables like %A_YYYY% (year), %Clipboard%, or add [CURSOR] to set text caret position!" FontSize="12" Foreground="#007ACC" Margin="0,5,0,0"/>
+                    <TextBlock Text="Text Autofill &amp; Hotstrings" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,5"/>
+                    <TextBlock Text="Type an abbreviation anywhere to instantly expand it into a full text snippet or image." FontSize="14" Foreground="#888" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                    <TextBlock Text="Tip: Use %A_YYYY% for the year, or %Clipboard% for your current clipboard text. Use [CURSOR] to automatically backspace the cursor after pasting." FontSize="12" Foreground="#888" Margin="0,0,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
-                
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
-                    <ItemsControl ItemsSource="{Binding Hotstrings, RelativeSource={RelativeSource AncestorType=Window}}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="#2D2D30" CornerRadius="8" Padding="15" Margin="0,0,10,10" BorderBrush="#3E3E42" BorderThickness="1">
+                <TextBox x:Name="HotstringSearchBox" Grid.Row="1" TextChanged="HotstringSearchBox_TextChanged" Margin="0,0,0,10" Padding="8" Background="#2D2D30" Foreground="White" BorderBrush="#3E3E42" BorderThickness="1"/>
+                <TextBlock Grid.Row="1" Text="🔍 Search Hotstrings..." IsHitTestVisible="False" Foreground="#888" Margin="8,8,0,0" x:Name="HotstringSearchPlaceholder"/>
+
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="HotstringsList" ItemsSource="{Binding Hotstrings, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#252526" BorderBrush="#333" BorderThickness="1" CornerRadius="6" Padding="15" Margin="0,0,0,15" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200"/>
@@ -328,7 +343,8 @@
                                         <StackPanel Grid.Column="0" Margin="0,0,15,0">
                                             <TextBlock Text="Trigger Word (e.g. .email)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,5"/>
                                             <TextBox Text="{Binding Trigger, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Padding="8" Margin="0,0,0,10"/>
-                                            <CheckBox Content="Match Typed Case" IsChecked="{Binding MatchTypedCase, Mode=TwoWay}" Foreground="#CCC" ToolTip="If checked, typing .EMAIL outputs upper-case. If unchecked, trigger is strictly case-sensitive."/>
+                                            <CheckBox Content="Match Typed Case" IsChecked="{Binding MatchTypedCase, Mode=TwoWay}" Foreground="#CCC" ToolTip="If checked, typing .EMAIL outputs upper-case. If unchecked, trigger is strictly case-sensitive." Margin="0,0,0,5"/>
+                                            <CheckBox Content="🔒 Encrypt on Disk" IsChecked="{Binding IsSecure, Mode=TwoWay}" Foreground="#CCC" ToolTip="If checked, the replacement string will be AES-encrypted in hotstrings.json."/>
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="1" Margin="0,0,15,0">
@@ -350,18 +366,18 @@
                     </ItemsControl>
                 </ScrollViewer>
                 
-                <Button Grid.Row="2" Content="➕ Add New Snippet" Background="#28A745" Foreground="White" Padding="20,12" FontWeight="Bold" FontSize="14" HorizontalAlignment="Left" Click="AddHotstring_Click" Margin="0,5,0,0"/>
+                <Button Grid.Row="3" Content="➕ Add New Snippet" Background="#28A745" Foreground="White" Padding="20,12" FontWeight="Bold" FontSize="14" HorizontalAlignment="Left" Click="AddHotstring_Click" Margin="0,5,0,0"/>
             </Grid>
         </TabItem>
 
-        <TabItem Header="🎨 Aesthetics">
+        <TabItem x:Name="AestheticsTab" Header="🎨 Aesthetics">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="20" Width="400" HorizontalAlignment="Left">
                     <TextBlock Text="Global Aesthetics &amp; Behavior" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,5"/>
                     <TextBlock Text="Customize the look and feel of the circular menu." FontSize="14" Foreground="#888" Margin="0,0,0,25"/>
 
                     <TextBlock Text="Color Theme" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                    <ComboBox x:Name="SettingsThemeComboBox" SelectionChanged="Settings_Changed" FontSize="15" Padding="8" Margin="0,0,0,20">
+                    <ComboBox x:Name="SettingsThemeComboBox" SelectedValuePath="Tag" SelectedValue="{Binding Theme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="15" Padding="8" Margin="0,0,0,20">
                         <ComboBoxItem Content="Cyberpunk Cyan" Tag="Cyberpunk Cyan"/>
                         <ComboBoxItem Content="Crimson Red" Tag="Crimson Red"/>
                         <ComboBoxItem Content="Toxic Green" Tag="Toxic Green"/>
@@ -370,7 +386,7 @@
                     </ComboBox>
 
                     <TextBlock Text="Animation Style" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                    <ComboBox x:Name="SettingsAnimationComboBox" SelectionChanged="Settings_Changed" FontSize="15" Padding="8" Margin="0,0,0,20">
+                    <ComboBox x:Name="SettingsAnimationComboBox" SelectedValuePath="Tag" SelectedValue="{Binding AnimationEasing, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="15" Padding="8" Margin="0,0,0,20">
                         <ComboBoxItem Content="Smooth (Ease Out)" Tag="Smooth"/>
                         <ComboBoxItem Content="Bouncy (Elastic)" Tag="Elastic"/>
                         <ComboBoxItem Content="Linear" Tag="Linear"/>
@@ -378,14 +394,54 @@
                         <ComboBoxItem Content="Cubic (Fast to slow)" Tag="Cubic"/>
                         <ComboBoxItem Content="Bounce (Ball drop)" Tag="Bounce"/>
                     </ComboBox>
+                    <TextBlock Text="Audio Feedback" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,10,0,5"/>
+                    <CheckBox Content="🎵 Enable Audio/Haptic Feedback" IsChecked="{Binding EnableAudio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Foreground="#FFF" Margin="0,5,0,10"/>
+                    
+                    <StackPanel Visibility="{Binding EnableAudio, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="Menu Navigation Tick Sound" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding TickSoundPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="8" FontSize="14" IsReadOnly="True" Background="#222" Foreground="#888"/>
+                            <Button Grid.Column="1" Content="Browse..." Command="{Binding BrowseTickSoundCommand}" Margin="10,0,0,0" Padding="15,0" Background="#333" Foreground="#FFF"/>
+                            <Button Grid.Column="2" Content="❌ Clear" Command="{Binding ClearTickSoundCommand}" Margin="10,0,0,0" Padding="15,0" Background="#A22" Foreground="#FFF" ToolTip="Remove the sound"/>
+                        </Grid>
+                        
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Volume" FontSize="14" FontWeight="SemiBold" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding TickSoundVolume, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" ToolTip="Adjust the haptic feedback volume"/>
+                        </Grid>
+                    </StackPanel>
+                    <TextBlock Text="Performance &amp; Security" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,10,0,5"/>
+                    <CheckBox x:Name="EnableGameModeCheckBox" Content="🎮 Enable Fullscreen Game Mode" IsChecked="{Binding EnableGameMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Foreground="#FFF" ToolTip="Automatically suspends macros when a fullscreen application (like a game) is in focus." Margin="0,5,0,20"/>
+
+                    <TextBlock Text="Library Management" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,30,0,5"/>
+                    <TextBlock Text="Backup and restore your macros and hotstrings." FontSize="14" Foreground="#888" Margin="0,0,0,20"/>
+                    
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="📦 Export Backup (.zip)" Background="#007ACC" Command="{Binding ExportBackupCommand}" Padding="15,8" Margin="0,0,10,0"/>
+                        <Button Content="📥 Import Backup (.zip)" Background="#28A745" Command="{Binding ImportBackupCommand}" Padding="15,8"/>
+                    </StackPanel>
+
                 </StackPanel>
             </ScrollViewer>
         </TabItem>
+
         </TabControl>
 
         <!-- Bottom Bar -->
         <Border Grid.Row="1" Background="#2D2D30" Padding="15,10" BorderBrush="#3E3E42" BorderThickness="0,1,0,0">
-            <Button Content="💾 Save All Settings" Background="#007ACC" HorizontalAlignment="Left" Click="SaveAll_Click" Padding="30,12" FontWeight="Bold" FontSize="15"/>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="💾 Save All Settings" Background="#007ACC" Click="SaveAll_Click" Padding="30,12" FontWeight="Bold" FontSize="15" Margin="0,0,15,0"/>
+                <Button x:Name="UndoButton" Content="↩️ Undo Delete" Background="#555" Click="Undo_Click" Padding="15,12" FontSize="14" Visibility="Collapsed"/>
+            </StackPanel>
         </Border>
     </Grid>
 </Window>

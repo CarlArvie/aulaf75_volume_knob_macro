@@ -1,149 +1,184 @@
 {
   "cat_websites": {
     "name": "Websites",
+    "isSecure": false,
     "children": {
       "web_1": {
         "name": "Google Calendar",
-        "action": "run:https://calendar.google.com"
+        "action": "run:https://calendar.google.com",
+        "isSecure": false
       },
       "web_2": {
         "name": "Gmail",
         "action": "run:https://mail.google.com/mail/u/0/#inbox",
-        "triggerHotkey": ""
+        "triggerHotkey": "",
+        "isSecure": false
       },
       "web_3": {
         "name": "Tasks",
-        "action": "run:https://calendar.google.com/calendar/u/0/r/tasks"
+        "action": "run:https://calendar.google.com/calendar/u/0/r/tasks",
+        "isSecure": false
       },
       "web_4": {
         "name": "Chat GPT",
-        "action": "run:https://chatgpt.com/?temporary-chat=true\u0026model=gpt-4o-mini"
+        "action": "run:https://chatgpt.com/?temporary-chat=true\u0026model=gpt-4o-mini",
+        "isSecure": false
       },
       "web_5": {
         "name": "Claude",
-        "action": "run:https://claude.ai/new"
+        "action": "run:https://claude.ai/new",
+        "isSecure": false
       },
       "web_6": {
         "name": "Liner Research",
-        "action": "run:https://getliner.com/"
+        "action": "run:https://getliner.com/",
+        "isSecure": false
       },
       "cat_otherwebs": {
         "name": "Other Websites",
+        "isSecure": false,
         "children": {
           "ow_1": {
             "name": "AHK Forum",
-            "action": "run:https://www.autohotkey.com/boards/viewforum.php?f=4"
+            "action": "run:https://www.autohotkey.com/boards/viewforum.php?f=4",
+            "isSecure": false
           },
           "ow_2": {
             "name": "Drive",
-            "action": "run:https://drive.google.com/"
+            "action": "run:https://drive.google.com/",
+            "isSecure": false
           },
           "ow_3": {
             "name": "Docs",
-            "action": "run:https://docs.google.com/"
+            "action": "run:https://docs.google.com/",
+            "isSecure": false
           },
           "ow_4": {
             "name": "Keep",
-            "action": "run:https://keep.google.com/"
+            "action": "run:https://keep.google.com/",
+            "isSecure": false
           },
           "ow_5": {
             "name": "Photos",
-            "action": "run:https://photos.google.com/"
+            "action": "run:https://photos.google.com/",
+            "isSecure": false
           },
           "ow_6": {
             "name": "Notebook LM",
-            "action": "run:https://notebooklm.google.com/"
+            "action": "run:https://notebooklm.google.com/",
+            "isSecure": false
           },
           "ow_7": {
             "name": "Maps",
-            "action": "run:https://maps.google.com/"
+            "action": "run:https://maps.google.com/",
+            "isSecure": false
           },
           "ow_8": {
             "name": "Sheets",
-            "action": "run:https://sheets.google.com/"
+            "action": "run:https://sheets.google.com/",
+            "isSecure": false
           },
           "ow_9": {
             "name": "Slides",
-            "action": "run:https://slides.google.com/"
+            "action": "run:https://slides.google.com/",
+            "isSecure": false
           },
           "ow_10": {
             "name": "YouTube",
-            "action": "run:https://youtube.com/"
+            "action": "run:https://youtube.com/",
+            "isSecure": false
           }
         }
       },
       "category_0524": {
         "name": "New Category",
+        "isSecure": false,
         "children": {}
+      },
+      "category_0dce": {
+        "name": "folder",
+        "action": "ahk:Run, notepad.exe\r\n\r\n; Wait up to 3 seconds for Notepad to open and become the active window\r\nWinWaitActive, ahk_exe notepad.exe,, 3 \r\n\r\nif ErrorLevel\r\n{\r\n    MsgBox, Notepad took too long to open.\r\n    return\r\n}\r\n\r\nSleep, 200 ; Wait 200 milliseconds just to be safe\r\nSendInput, Hello! This is a multi-step macro testing the new Raw AHK Script feature.\r\nSleep, 500 ; Wait half a second\r\nSendInput, {Enter}{Enter}It works perfectly!",
+        "isSecure": false
       }
     }
   },
   "cat_programs": {
     "name": "Programs",
+    "isSecure": false,
     "children": {
       "prog_1": {
         "name": "VS Code",
-        "action": "run:C:\\Users\\carla\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe"
+        "action": "run:C:\\Users\\carla\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+        "isSecure": false
       },
       "prog_2": {
         "name": "XAMPP",
-        "action": "run:C:\\xampp\\xampp-control.exe"
+        "action": "run:C:\\xampp\\xampp-control.exe",
+        "isSecure": false
       },
       "prog_3": {
         "name": "Chrome",
-        "action": "run:C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-      }
-    }
-  },
-  "cat_scripts": {
-    "name": "AHK Scripts",
-    "children": {
-      "scr_1": {
-        "name": "Starter",
-        "action": "run:C:\\Users\\carla\\Desktop\\macropad\\test\\Starter.ahk"
+        "action": "run:C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+        "isSecure": false
       }
     }
   },
   "cat_winset": {
     "name": "Windows Settings",
+    "isSecure": false,
     "children": {
       "ws_1": {
         "name": "Display Settings",
-        "action": "run:ms-settings:display"
+        "action": "run:ms-settings:display",
+        "isSecure": false
       },
       "ws_2": {
         "name": "Bluetooth",
-        "action": "run:ms-settings:bluetooth"
+        "action": "run:ms-settings:bluetooth",
+        "isSecure": false
       },
       "ws_3": {
         "name": "Night Light",
-        "action": "run:ms-settings:nightlight"
+        "action": "run:ms-settings:nightlight",
+        "isSecure": false
+      }
+    }
+  },
+  "cat_scripts": {
+    "name": "AHK Scripts",
+    "isSecure": false,
+    "children": {
+      "scr_1": {
+        "name": "Starter",
+        "action": "run:C:\\Users\\carla\\Desktop\\macropad\\test\\Starter.ahk",
+        "isSecure": false
       }
     }
   },
   "cat_snippets": {
     "name": "Snippets",
+    "isSecure": false,
     "children": {
       "snip_1": {
         "name": "^Backspace",
-        "action": "sendtext:Send(\u0022^\u002B{Left}{Backspace}\u0022)"
+        "action": "sendtext:Send(\u0022^\u002B{Left}{Backspace}\u0022)",
+        "isSecure": false
       },
       "snip_2": {
         "name": "Get Mouse Pos",
-        "action": "sendtext:CoordMode(\u0022Mouse\u0022, \u0022Screen\u0022)\r\nMouseGetPos(\u0026mouseX, \u0026mouseY)"
+        "action": "sendtext:CoordMode(\u0022Mouse\u0022, \u0022Screen\u0022)\r\nMouseGetPos(\u0026mouseX, \u0026mouseY)",
+        "isSecure": false
       },
       "snip_3": {
         "name": "Return Mouse Pos",
-        "action": "sendtext:MouseMove(mouseX, mouseY, 0)"
+        "action": "sendtext:MouseMove(mouseX, mouseY, 0)",
+        "isSecure": false
       },
       "snip_4": {
         "name": "Try block",
-        "action": "sendtext:Try{\r\n\r\n; }"
+        "action": "sendtext:Try{\r\n\r\n; }",
+        "isSecure": false
       }
     }
-  },
-  "category_0dce": {
-    "name": "folder",
-    "action": "ahk:Run, notepad.exe\r\n\r\n; Wait up to 3 seconds for Notepad to open and become the active window\r\nWinWaitActive, ahk_exe notepad.exe,, 3 \r\n\r\nif ErrorLevel\r\n{\r\n    MsgBox, Notepad took too long to open.\r\n    return\r\n}\r\n\r\nSleep, 200 ; Wait 200 milliseconds just to be safe\r\nSendInput, Hello! This is a multi-step macro testing the new Raw AHK Script feature.\r\nSleep, 500 ; Wait half a second\r\nSendInput, {Enter}{Enter}It works perfectly!"
   }
 }

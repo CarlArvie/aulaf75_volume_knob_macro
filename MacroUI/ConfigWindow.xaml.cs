@@ -8,40 +8,37 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Text;
 using Microsoft.Win32;
+using System.IO.Compression;
+using System.Windows.Input;
+using MacroUI.ViewModels;
 
 namespace MacroUI
 {
     public partial class ConfigWindow : Window
     {
-        public ObservableCollection<TreeNodeViewModel> RootNodes { get; set; } = new ObservableCollection<TreeNodeViewModel>();
+        public MacroTreeViewModel TreeVM { get; set; } = new MacroTreeViewModel();
         public ObservableCollection<HotstringEntry> Hotstrings { get; set; } = new ObservableCollection<HotstringEntry>();
+        
+        public SettingsViewModel SettingsVM { get; set; }
         
         private TreeNodeViewModel _selectedNode;
         private bool _isUpdatingUI = false;
         private AppSettings _appSettings = new AppSettings();
+        private Stack<Action> _undoStack = new Stack<Action>();
 
         public ConfigWindow()
         {
             InitializeComponent();
             LoadData();
-            MacroTreeView.ItemsSource = RootNodes;
+            MacroTreeView.ItemsSource = TreeVM.RootNodes;
+            TreeVM.PropertyChanged += (s, e) => { if (e.PropertyName == "CanUndo") UpdateUndoButton(); };
         }
 
         private void LoadData()
         {
             // Load Macros
             string jsonPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "macros.json"));
-
-            if (File.Exists(jsonPath))
-            {
-                string json = File.ReadAllText(jsonPath);
-                var rootDict = JsonSerializer.Deserialize<Dictionary<string, MacroNode>>(json);
-                RootNodes.Clear();
-                foreach (var kvp in rootDict)
-                {
-                    RootNodes.Add(new TreeNodeViewModel(kvp.Key, kvp.Value, null));
-                }
-            }
+            TreeVM.LoadMacros(jsonPath);
             
             // Load Hotstrings
             string hotstringsPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "hotstrings.json"));
@@ -57,6 +54,10 @@ namespace MacroUI
                     {
                         foreach (var entry in hotstringsList)
                         {
+                            if (entry.IsSecure && !string.IsNullOrEmpty(entry.Replacement))
+                            {
+                                entry.Replacement = CryptoHelper.Decrypt(entry.Replacement);
+                            }
                             Hotstrings.Add(entry);
                         }
                     }
@@ -78,30 +79,22 @@ namespace MacroUI
                     if (settings != null)
                     {
                         _appSettings = settings;
-                        CenterTitleTextBox.Text = _appSettings.CenterTitle;
-                        if (!string.IsNullOrEmpty(_appSettings.CenterImagePath))
-                        {
-                            CenterLogoTextBlock.Text = _appSettings.CenterImagePath;
-                        }
-                        
-                        foreach (ComboBoxItem item in SettingsThemeComboBox.Items)
-                        {
-                            if (item.Tag.ToString() == _appSettings.Theme)
-                                SettingsThemeComboBox.SelectedItem = item;
-                        }
-                        
-                        foreach (ComboBoxItem item in SettingsAnimationComboBox.Items)
-                        {
-                            if (item.Tag.ToString() == _appSettings.AnimationEasing)
-                                SettingsAnimationComboBox.SelectedItem = item;
-                        }
-
-                        SelectKeyComboBox.Text = _appSettings.SelectKey;
-                        BackKeyComboBox.Text = _appSettings.BackKey;
                     }
                 }
                 catch { }
             }
+            
+            SettingsVM = new SettingsViewModel(_appSettings);
+            SettingsVM.ImportCompleted += (s, ev) => LoadData();
+            AestheticsTab.DataContext = SettingsVM;
+
+            CenterTitleTextBox.Text = _appSettings.CenterTitle;
+            if (!string.IsNullOrEmpty(_appSettings.CenterImagePath))
+            {
+                CenterLogoTextBlock.Text = _appSettings.CenterImagePath;
+            }
+            SelectKeyComboBox.Text = _appSettings.SelectKey;
+            BackKeyComboBox.Text = _appSettings.BackKey;
         }
 
         private void MacroTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
@@ -272,18 +265,7 @@ namespace MacroUI
             }
         }
 
-        private void Settings_Changed(object sender, RoutedEventArgs e)
-        {
-            if (_isUpdatingUI || _appSettings == null) return;
-            if (SettingsThemeComboBox.SelectedItem is ComboBoxItem themeItem)
-            {
-                _appSettings.Theme = themeItem.Tag.ToString();
-            }
-            if (SettingsAnimationComboBox.SelectedItem is ComboBoxItem animItem)
-            {
-                _appSettings.AnimationEasing = animItem.Tag.ToString();
-            }
-        }
+
 
         private void CenterTitle_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -456,7 +438,7 @@ namespace MacroUI
             if (targetNode != null)
                 targetNode.Children.Add(newNode);
             else
-                RootNodes.Add(newNode);
+                TreeVM.RootNodes.Add(newNode);
         }
 
         private void AddMacro_Click(object sender, RoutedEventArgs e)
@@ -469,7 +451,7 @@ namespace MacroUI
             if (targetNode != null)
                 targetNode.Children.Add(newNode);
             else
-                RootNodes.Add(newNode);
+                TreeVM.RootNodes.Add(newNode);
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)
@@ -480,16 +462,22 @@ namespace MacroUI
 
             if (targetNode != null)
             {
-                if (targetNode.Parent != null)
-                    targetNode.Parent.Children.Remove(targetNode);
-                else
-                    RootNodes.Remove(targetNode);
+                var parent = targetNode.Parent;
+                var list = parent != null ? parent.Children : TreeVM.RootNodes;
+                int index = list.IndexOf(targetNode);
+                
+                list.Remove(targetNode);
                 
                 if (_selectedNode == targetNode)
                 {
                     _selectedNode = null;
                     UpdateEditorUI();
                 }
+
+                TreeVM.PushUndo(() => {
+                    list.Insert(index, targetNode);
+                });
+                UpdateUndoButton();
             }
         }
 
@@ -497,7 +485,13 @@ namespace MacroUI
         {
             if (sender is System.Windows.Controls.Button btn && btn.DataContext is HotstringEntry entry)
             {
+                int index = Hotstrings.IndexOf(entry);
                 Hotstrings.Remove(entry);
+                
+                _undoStack.Push(() => {
+                    Hotstrings.Insert(index, entry);
+                });
+                UpdateUndoButton();
             }
         }
 
@@ -530,20 +524,15 @@ namespace MacroUI
         private void SaveAll_Click(object sender, RoutedEventArgs e)
         {
             // --- 1. Save Macros ---
-            var rootDict = new Dictionary<string, MacroNode>();
-            foreach (var node in RootNodes)
-            {
-                rootDict[node.Key] = node.ToMacroNode();
-            }
+            string macrosPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "macros.json"));
+            TreeVM.SaveMacros(macrosPath);
 
             var options = new JsonSerializerOptions { WriteIndented = true };
-            string macrosJson = JsonSerializer.Serialize(rootDict, options);
-            string macrosPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "macros.json"));
-            File.WriteAllText(macrosPath, macrosJson);
 
             // --- 2. Save Settings ---
             _appSettings.SelectKey = SelectKeyComboBox.Text;
             _appSettings.BackKey = BackKeyComboBox.Text;
+            _appSettings.EnableGameMode = EnableGameModeCheckBox.IsChecked ?? false;
             string settingsPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "settings.json"));
             File.WriteAllText(settingsPath, JsonSerializer.Serialize(_appSettings, options));
 
@@ -554,15 +543,22 @@ namespace MacroUI
 
             // --- 3. Save Hotstrings ---
             var validHotstrings = new List<HotstringEntry>();
+            var secureCopies = new List<HotstringEntry>();
             foreach (var entry in Hotstrings)
             {
                 if (!string.IsNullOrWhiteSpace(entry.Trigger) && !string.IsNullOrWhiteSpace(entry.Replacement))
                 {
                     validHotstrings.Add(entry);
+                    var copy = new HotstringEntry { Trigger = entry.Trigger, Replacement = entry.Replacement, ImagePath = entry.ImagePath, MatchTypedCase = entry.MatchTypedCase, IsSecure = entry.IsSecure };
+                    if (copy.IsSecure && !string.IsNullOrEmpty(copy.Replacement))
+                    {
+                        copy.Replacement = CryptoHelper.Encrypt(copy.Replacement);
+                    }
+                    secureCopies.Add(copy);
                 }
             }
 
-            string hotstringsJson = JsonSerializer.Serialize(validHotstrings, options);
+            string hotstringsJson = JsonSerializer.Serialize(secureCopies, options);
             string hotstringsPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "hotstrings.json"));
             File.WriteAllText(hotstringsPath, hotstringsJson);
 
@@ -641,7 +637,7 @@ namespace MacroUI
                     }
                 }
             };
-            scanHotkeys(RootNodes);
+            scanHotkeys(TreeVM.RootNodes);
             File.WriteAllText(customHotkeysPath, customHotkeysContent.ToString(), Encoding.UTF8);
 
             // --- 4. Notify & Reload ---
@@ -665,6 +661,165 @@ namespace MacroUI
             }
         }
 
+
+
+        private void UpdateUndoButton()
+        {
+            UndoButton.Visibility = (_undoStack.Count > 0 || TreeVM.CanUndo) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void Undo_Click(object sender, RoutedEventArgs e)
+        {
+            if (TreeVM.CanUndo)
+            {
+                TreeVM.UndoCommand.Execute(null);
+            }
+            else if (_undoStack.Count > 0)
+            {
+                var action = _undoStack.Pop();
+                action();
+                UpdateUndoButton();
+            }
+        }
+
+
+        private void MacroSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string query = MacroSearchBox.Text.Trim().ToLower();
+            MacroSearchPlaceholder.Visibility = string.IsNullOrEmpty(query) ? Visibility.Visible : Visibility.Collapsed;
+            
+            foreach (var node in TreeVM.RootNodes)
+            {
+                FilterNode(node, query);
+            }
+        }
+
+        private bool FilterNode(TreeNodeViewModel node, string query)
+        {
+            bool match = string.IsNullOrEmpty(query) || (node.Name?.ToLower().Contains(query) ?? false) || (node.TriggerHotkey?.ToLower().Contains(query) ?? false);
+            bool childMatch = false;
+            foreach (var child in node.Children)
+            {
+                if (FilterNode(child, query))
+                    childMatch = true;
+            }
+            node.IsVisible = match || childMatch;
+            return node.IsVisible;
+        }
+
+        private void HotstringSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string query = HotstringSearchBox.Text.Trim().ToLower();
+            HotstringSearchPlaceholder.Visibility = string.IsNullOrEmpty(query) ? Visibility.Visible : Visibility.Collapsed;
+
+            foreach (var hs in Hotstrings)
+            {
+                hs.IsVisible = string.IsNullOrEmpty(query) || (hs.Trigger?.ToLower().Contains(query) ?? false) || (hs.Replacement?.ToLower().Contains(query) ?? false);
+            }
+        }
+
+
+
+        private System.Windows.Point _startPoint;
+        private void TreeView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _startPoint = e.GetPosition(null);
+        }
+
+        private void TreeView_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                System.Windows.Point mousePos = e.GetPosition(null);
+                Vector diff = _startPoint - mousePos;
+
+                if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance || Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+                {
+                    System.Windows.Controls.TreeView treeView = sender as System.Windows.Controls.TreeView;
+                    TreeViewItem treeViewItem = FindAncestor<TreeViewItem>((DependencyObject)e.OriginalSource);
+                    if (treeViewItem != null)
+                    {
+                        TreeNodeViewModel dragData = treeViewItem.DataContext as TreeNodeViewModel;
+                        if (dragData != null)
+                        {
+                            System.Windows.DragDrop.DoDragDrop(treeViewItem, dragData, System.Windows.DragDropEffects.Move);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void TreeView_DragEnter(object sender, System.Windows.DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(typeof(TreeNodeViewModel)))
+            {
+                e.Effects = System.Windows.DragDropEffects.None;
+            }
+        }
+
+        private void TreeView_Drop(object sender, System.Windows.DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(typeof(TreeNodeViewModel)))
+            {
+                TreeNodeViewModel sourceNode = (TreeNodeViewModel)e.Data.GetData(typeof(TreeNodeViewModel));
+                TreeViewItem targetItem = FindAncestor<TreeViewItem>((DependencyObject)e.OriginalSource);
+
+                if (targetItem != null)
+                {
+                    TreeNodeViewModel targetNode = targetItem.DataContext as TreeNodeViewModel;
+                    if (targetNode != null && targetNode != sourceNode && !TreeVM.IsDescendant(sourceNode, targetNode))
+                    {
+                        System.Windows.Point dropPosition = e.GetPosition(targetItem);
+                        double targetHeight = targetItem.ActualHeight;
+
+                        // Check position
+                        MacroTreeViewModel.DropPosition pos = MacroTreeViewModel.DropPosition.Inside;
+
+                        if (dropPosition.Y < targetHeight * 0.25)
+                        {
+                            pos = MacroTreeViewModel.DropPosition.Above;
+                        }
+                        else if (dropPosition.Y > targetHeight * 0.75)
+                        {
+                            pos = MacroTreeViewModel.DropPosition.Below;
+                        }
+
+                        // If it's a Macro (not a Category) and we try to drop inside, change to Below instead
+                        if (pos == MacroTreeViewModel.DropPosition.Inside && targetNode.MacroType != "Category")
+                        {
+                            pos = MacroTreeViewModel.DropPosition.Below;
+                        }
+
+                        TreeVM.HandleDrop(sourceNode, targetNode, pos);
+                        if (pos == MacroTreeViewModel.DropPosition.Inside && targetNode.MacroType == "Category")
+                        {
+                            targetItem.IsExpanded = true;
+                        }
+                        UpdateUndoButton();
+                    }
+                }
+                else
+                {
+                    TreeVM.HandleDropToRoot(sourceNode);
+                    UpdateUndoButton();
+                }
+            }
+        }
+
+        private static T FindAncestor<T>(DependencyObject current) where T : DependencyObject
+        {
+            do
+            {
+                if (current is T)
+                {
+                    return (T)current;
+                }
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+            while (current != null);
+            return null;
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
@@ -686,194 +841,17 @@ namespace MacroUI
         private string _imagePath;
         public string ImagePath { get => _imagePath; set { _imagePath = value; OnPropertyChanged(nameof(ImagePath)); } }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        private bool _isVisible = true;
+        public bool IsVisible { get => _isVisible; set { _isVisible = value; OnPropertyChanged(nameof(IsVisible)); } }
+
+        private bool _isSecure = false;
+        public bool IsSecure { get => _isSecure; set { _isSecure = value; OnPropertyChanged(nameof(IsSecure)); } }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string prop) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
     }
 
-    public class TreeNodeViewModel : INotifyPropertyChanged
-    {
-        public string Key { get; set; }
-        public TreeNodeViewModel Parent { get; set; }
-        public ObservableCollection<TreeNodeViewModel> Children { get; set; } = new ObservableCollection<TreeNodeViewModel>();
 
-        private bool _isSelected;
-        public bool IsSelected 
-        {
-            get => _isSelected;
-            set { _isSelected = value; OnPropertyChanged(nameof(IsSelected)); }
-        }
-
-        private string _name;
-        public string Name
-        {
-            get => _name;
-            set { _name = value; OnPropertyChanged(nameof(Name)); }
-        }
-
-        private string _imagePath;
-        public string ImagePath
-        {
-            get => _imagePath;
-            set { _imagePath = value; OnPropertyChanged(nameof(ImagePath)); }
-        }
-
-        private string _iconUnicode;
-        public string IconUnicode
-        {
-            get => _iconUnicode;
-            set { _iconUnicode = value; OnPropertyChanged(nameof(IconUnicode)); }
-        }
-
-        private string _targetProcess;
-        public string TargetProcess
-        {
-            get => _targetProcess;
-            set { _targetProcess = value; OnPropertyChanged(nameof(TargetProcess)); }
-        }
-
-        private string _triggerHotkey;
-        public string TriggerHotkey
-        {
-            get => _triggerHotkey;
-            set { _triggerHotkey = value; OnPropertyChanged(nameof(TriggerHotkey)); }
-        }
-
-        private string _action;
-        public string Action
-        {
-            get => _action;
-            set 
-            { 
-                _action = value; 
-                OnPropertyChanged(nameof(Action)); 
-                OnPropertyChanged(nameof(Icon));
-            }
-        }
-
-        public string Icon => (MacroType == "Category") ? "📁" : "⚡";
-
-        private string _macroType;
-        public string MacroType 
-        {
-            get => _macroType;
-            set { _macroType = value; OnPropertyChanged(nameof(MacroType)); RebuildAction(); OnPropertyChanged(nameof(Icon)); }
-        }
-
-        private string _rawActionValue;
-        public string RawActionValue 
-        {
-            get => _rawActionValue;
-            set { _rawActionValue = value; OnPropertyChanged(nameof(RawActionValue)); RebuildAction(); }
-        }
-
-        private bool _isParsing = false;
-
-        private void RebuildAction()
-        {
-            if (_isParsing) return;
-
-            if (MacroType == "Category")
-                Action = "";
-            else if (MacroType == "Send")
-                Action = "send:" + RawActionValue;
-            else if (MacroType == "Run")
-                Action = "run:" + RawActionValue;
-            else if (MacroType == "SendText")
-                Action = "sendtext:" + RawActionValue;
-            else if (MacroType == "RawAHK")
-                Action = "ahk:" + RawActionValue;
-            else if (MacroType == "SystemCommand")
-                Action = "sys:" + RawActionValue;
-        }
-
-        private void ParseAction()
-        {
-            _isParsing = true;
-            if (string.IsNullOrEmpty(Action))
-            {
-                MacroType = "Category";
-                RawActionValue = "";
-            }
-            else if (Action.StartsWith("sendtext:"))
-            {
-                MacroType = "SendText";
-                RawActionValue = Action.Substring(9);
-            }
-            else if (Action.StartsWith("send:"))
-            {
-                MacroType = "Send";
-                RawActionValue = Action.Substring(5);
-            }
-            else if (Action.StartsWith("run:"))
-            {
-                MacroType = "Run";
-                RawActionValue = Action.Substring(4);
-            }
-            else if (Action.StartsWith("ahk:"))
-            {
-                MacroType = "RawAHK";
-                RawActionValue = Action.Substring(4);
-            }
-            else if (Action.StartsWith("sys:"))
-            {
-                MacroType = "SystemCommand";
-                RawActionValue = Action.Substring(4);
-            }
-            else
-            {
-                MacroType = "Send";
-                RawActionValue = Action;
-            }
-            _isParsing = false;
-        }
-
-        public TreeNodeViewModel(string key, MacroNode node, TreeNodeViewModel parent)
-        {
-            Key = key;
-            Parent = parent;
-            if (node != null)
-            {
-                Name = node.Name;
-                Action = node.Action;
-                ImagePath = node.ImagePath;
-                TargetProcess = node.TargetProcess;
-                TriggerHotkey = node.TriggerHotkey;
-                IconUnicode = node.IconUnicode;
-                ParseAction();
-            }
-            if (node.Children != null)
-            {
-                foreach (var kvp in node.Children)
-                {
-                    Children.Add(new TreeNodeViewModel(kvp.Key, kvp.Value, this));
-                }
-            }
-        }
-
-        public MacroNode ToMacroNode()
-        {
-            var node = new MacroNode { 
-                Name = Name, 
-                Action = (MacroType == "Category") ? null : Action, 
-                ImagePath = ImagePath,
-                TargetProcess = TargetProcess,
-                TriggerHotkey = TriggerHotkey,
-                IconUnicode = IconUnicode
-            };
-            if (Children.Count > 0 || MacroType == "Category")
-            {
-                node.Children = new Dictionary<string, MacroNode>();
-                foreach (var child in Children)
-                {
-                    node.Children[child.Key] = child.ToMacroNode();
-                }
-            }
-            return node;
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged(string prop) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
-    }
 }
 
 

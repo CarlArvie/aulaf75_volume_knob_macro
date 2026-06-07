@@ -2,7 +2,11 @@
   "centerTitle": "AULA",
   "centerImagePath": "Images\\bcb7bbc2-f52e-4d12-bc4a-b3dd0b1436d2.png",
   "theme": "Royal Purple",
-  "animationEasing": "Back",
+  "animationEasing": "Cubic",
   "selectKey": "PgUp",
-  "backKey": "PgDn"
+  "backKey": "PgDn",
+  "enableGameMode": false,
+  "enableAudio": true,
+  "tickSoundPath": "C:\\Users\\carla\\Downloads\\test.mp3",
+  "tickSoundVolume": 0.30503792801233043
 }

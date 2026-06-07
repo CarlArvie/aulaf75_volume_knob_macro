@@ -15,11 +15,13 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows.Threading;
 using MessageBox = System.Windows.MessageBox;
 using Point = System.Windows.Point;
 using Size = System.Windows.Size;
 using Color = System.Windows.Media.Color;
 using Brushes = System.Windows.Media.Brushes;
+using System.Media;
 
 namespace MacroUI
 {
@@ -44,6 +46,24 @@ namespace MacroUI
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool GetCursorPos(ref Win32Point pt);
 
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        static extern int GetSystemMetrics(int nIndex);
+        const int SM_CXSCREEN = 0;
+        const int SM_CYSCREEN = 1;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         internal struct Win32Point
         {
@@ -51,7 +71,23 @@ namespace MacroUI
             public Int32 Y;
         };
 
-        private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+        [StructLayout(LayoutKind.Sequential)]
+        public struct COPYDATASTRUCT
+        {
+            public IntPtr dwData;
+            public int cbData;
+            public IntPtr lpData;
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, ref COPYDATASTRUCT lParam);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        public const uint WM_COPYDATA = 0x004A;
+
+        private uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
         private string GetForegroundProcessName()
         {
@@ -84,14 +120,20 @@ namespace MacroUI
         private bool _isVisible = false;
         private AppSettings _appSettings = new AppSettings();
         
+        private DispatcherTimer _gameModeTimer;
+        private bool _isSuspendedByGameMode = false;
+        
         // Aesthetic Configuration
         private const double MenuRadius = 280;
         private const double MenuInnerRadius = 110;
         private const double SliceGapAngle = 2.5; // Gap between slices in degrees
 
+        private MediaPlayer _tickSound = new MediaPlayer();
+
         public MainWindow()
         {
             InitializeComponent();
+            _tickSound.Volume = _appSettings?.TickSoundVolume ?? 0.6;
 
             var dummy = new Window
             {
@@ -107,8 +149,89 @@ namespace MacroUI
             this.Opacity = 0;
             this.Visibility = Visibility.Hidden;
 
+            _gameModeTimer = new DispatcherTimer();
+            _gameModeTimer.Interval = TimeSpan.FromSeconds(2);
+            _gameModeTimer.Tick += GameModeTimer_Tick;
+            _gameModeTimer.Start();
+
             Task.Run(StartNamedPipeServer);
         }
+
+        private void GameModeTimer_Tick(object sender, EventArgs e)
+        {
+            if (!_appSettings.EnableGameMode) 
+            {
+                if (_isSuspendedByGameMode)
+                {
+                    SendSuspendCommand(false);
+                    _isSuspendedByGameMode = false;
+                }
+                return;
+            }
+
+            IntPtr hWnd = GetForegroundWindow();
+            if (hWnd == IntPtr.Zero) return;
+
+            GetWindowThreadProcessId(hWnd, out uint processId);
+            if (processId == System.Diagnostics.Process.GetCurrentProcess().Id) return;
+
+            if (GetWindowRect(hWnd, out RECT rect))
+            {
+                int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+                int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+                int width = rect.Right - rect.Left;
+                int height = rect.Bottom - rect.Top;
+
+                bool isFullscreen = (width >= screenWidth && height >= screenHeight);
+                string processName = GetForegroundProcessName() ?? "";
+
+                // Ignore Explorer/Desktop
+                if (processName.Equals("explorer.exe", StringComparison.OrdinalIgnoreCase))
+                    isFullscreen = false;
+
+                if (isFullscreen && !_isSuspendedByGameMode)
+                {
+                    SendSuspendCommand(true);
+                    _isSuspendedByGameMode = true;
+                }
+                else if (!isFullscreen && _isSuspendedByGameMode)
+                {
+                    SendSuspendCommand(false);
+                    _isSuspendedByGameMode = false;
+                }
+            }
+        }
+
+        private void SendSuspendCommand(bool suspend)
+        {
+            SendIPCMessage(suspend ? "suspend:on" : "suspend:off");
+        }
+
+        private void SendIPCMessage(string message)
+        {
+            try
+            {
+                IntPtr hWnd = FindWindow("AutoHotkey", "AulaMacroEngine_IPC");
+                if (hWnd != IntPtr.Zero)
+                {
+                    byte[] bytes = Encoding.Unicode.GetBytes(message + "\0");
+                    COPYDATASTRUCT cds = new COPYDATASTRUCT();
+                    cds.dwData = IntPtr.Zero;
+                    cds.cbData = bytes.Length;
+
+                    IntPtr unmanagedPointer = Marshal.AllocHGlobal(bytes.Length);
+                    Marshal.Copy(bytes, 0, unmanagedPointer, bytes.Length);
+                    cds.lpData = unmanagedPointer;
+
+                    SendMessage(hWnd, WM_COPYDATA, IntPtr.Zero, ref cds);
+
+                    Marshal.FreeHGlobal(unmanagedPointer);
+                }
+            }
+            catch { }
+        }
+
 
         private void LoadConfig()
         {
@@ -127,6 +250,15 @@ namespace MacroUI
                     var settings = JsonSerializer.Deserialize<AppSettings>(settingsJson);
                     if (settings != null) _appSettings = settings;
                 }
+
+                try {
+                    _tickSound.Close();
+                    _tickSound = new MediaPlayer();
+                    _tickSound.Volume = _appSettings.TickSoundVolume;
+                    if (!string.IsNullOrWhiteSpace(_appSettings.TickSoundPath) && File.Exists(_appSettings.TickSoundPath)) {
+                        _tickSound.Open(new Uri(_appSettings.TickSoundPath));
+                    }
+                } catch { }
             }
             catch (Exception ex)
             {
@@ -284,6 +416,7 @@ namespace MacroUI
                     int totalCount = _currentNode.Children.Count + 1;
                     _selectedIndex = (_selectedIndex + 1) % totalCount;
                     DrawMenu();
+                    PlaySound(_tickSound);
                 }
             }
             else if (cmd == "PREV")
@@ -298,6 +431,7 @@ namespace MacroUI
                     int totalCount = _currentNode.Children.Count + 1;
                     _selectedIndex = (_selectedIndex - 1 + totalCount) % totalCount;
                     DrawMenu();
+                    PlaySound(_tickSound);
                 }
             }
             else if (cmd == "BACK" && _isVisible)
@@ -307,6 +441,7 @@ namespace MacroUI
                     _currentNode = _navigationHistory.Pop();
                     _selectedIndex = 0;
                     DrawMenu();
+                    PlaySound(_tickSound);
                 }
                 else
                 {
@@ -333,12 +468,12 @@ namespace MacroUI
                         _currentNode = selectedChild;
                         _selectedIndex = 0;
                         DrawMenu();
+                        PlaySound(_tickSound);
                     }
                     else
                     {
-                        string execFile = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "execute.txt");
                         string action = !string.IsNullOrEmpty(selectedChild.Action) ? selectedChild.Action : ("send:" + selectedKey);
-                        File.WriteAllText(execFile, action);
+                        SendIPCMessage(action);
                         
                         _isVisible = false;
                         AnimateVisibility(false);
@@ -349,6 +484,20 @@ namespace MacroUI
                     }
                 }
             }
+        }
+
+        private void PlaySound(MediaPlayer player)
+        {
+            if (!_appSettings.EnableAudio) return;
+            try 
+            {
+                if (player.Source != null)
+                {
+                    player.Position = TimeSpan.Zero;
+                    player.Play();
+                }
+            }
+            catch { }
         }
 
         private void DrawMenu()

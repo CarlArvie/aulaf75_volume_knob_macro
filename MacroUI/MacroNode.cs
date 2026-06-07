@@ -28,6 +28,9 @@ namespace MacroUI
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string IconUnicode { get; set; }
 
+        [JsonPropertyName("isSecure")]
+        public bool IsSecure { get; set; }
+
         [JsonPropertyName("children")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public Dictionary<string, MacroNode> Children { get; set; }
