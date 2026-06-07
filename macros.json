@@ -8,7 +8,8 @@
       },
       "web_2": {
         "name": "Gmail",
-        "action": "run:https://mail.google.com/mail/u/0/#inbox"
+        "action": "run:https://mail.google.com/mail/u/0/#inbox",
+        "triggerHotkey": ""
       },
       "web_3": {
         "name": "Tasks",
@@ -143,6 +144,6 @@
   },
   "category_0dce": {
     "name": "folder",
-    "children": {}
+    "action": "ahk:Run, notepad.exe\r\n\r\n; Wait up to 3 seconds for Notepad to open and become the active window\r\nWinWaitActive, ahk_exe notepad.exe,, 3 \r\n\r\nif ErrorLevel\r\n{\r\n    MsgBox, Notepad took too long to open.\r\n    return\r\n}\r\n\r\nSleep, 200 ; Wait 200 milliseconds just to be safe\r\nSendInput, Hello! This is a multi-step macro testing the new Raw AHK Script feature.\r\nSleep, 500 ; Wait half a second\r\nSendInput, {Enter}{Enter}It works perfectly!"
   }
 }

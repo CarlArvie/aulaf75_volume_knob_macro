@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Text;
+using Microsoft.Win32;
 
 namespace MacroUI
 {
@@ -17,6 +18,7 @@ namespace MacroUI
         
         private TreeNodeViewModel _selectedNode;
         private bool _isUpdatingUI = false;
+        private AppSettings _appSettings = new AppSettings();
 
         public ConfigWindow()
         {
@@ -72,21 +74,30 @@ namespace MacroUI
                 try
                 {
                     string settingsJson = File.ReadAllText(settingsPath);
-                    var settings = JsonSerializer.Deserialize<Dictionary<string, string>>(settingsJson);
+                    var settings = JsonSerializer.Deserialize<AppSettings>(settingsJson);
                     if (settings != null)
                     {
-                        if (settings.ContainsKey("CenterTitle"))
-                            CenterTitleTextBox.Text = settings["CenterTitle"];
+                        _appSettings = settings;
+                        CenterTitleTextBox.Text = _appSettings.CenterTitle;
+                        if (!string.IsNullOrEmpty(_appSettings.CenterImagePath))
+                        {
+                            CenterLogoTextBlock.Text = _appSettings.CenterImagePath;
+                        }
                         
-                        if (settings.ContainsKey("SelectKey"))
-                            SelectKeyComboBox.Text = settings["SelectKey"];
-                        else
-                            SelectKeyComboBox.Text = "Volume_Mute";
+                        foreach (ComboBoxItem item in SettingsThemeComboBox.Items)
+                        {
+                            if (item.Tag.ToString() == _appSettings.Theme)
+                                SettingsThemeComboBox.SelectedItem = item;
+                        }
+                        
+                        foreach (ComboBoxItem item in SettingsAnimationComboBox.Items)
+                        {
+                            if (item.Tag.ToString() == _appSettings.AnimationEasing)
+                                SettingsAnimationComboBox.SelectedItem = item;
+                        }
 
-                        if (settings.ContainsKey("BackKey"))
-                            BackKeyComboBox.Text = settings["BackKey"];
-                        else
-                            BackKeyComboBox.Text = "RButton";
+                        SelectKeyComboBox.Text = _appSettings.SelectKey;
+                        BackKeyComboBox.Text = _appSettings.BackKey;
                     }
                 }
                 catch { }
@@ -124,24 +135,68 @@ namespace MacroUI
                 KeystrokePanel.Visibility = Visibility.Collapsed;
                 ProgramPanel.Visibility = Visibility.Collapsed;
                 TextPanel.Visibility = Visibility.Collapsed;
+                TargetProcessPanel.Visibility = Visibility.Collapsed;
+                TriggerHotkeyPanel.Visibility = Visibility.Collapsed;
+                RawAHKPanel.Visibility = Visibility.Collapsed;
+                SystemCommandPanel.Visibility = Visibility.Collapsed;
 
-                if (_selectedNode.MacroType == "Send")
+                if (_selectedNode.MacroType == "Category")
                 {
-                    KeystrokePanel.Visibility = Visibility.Visible;
-                    KeystrokeTextBox.Text = _selectedNode.RawActionValue;
+                    TargetProcessPanel.Visibility = Visibility.Visible;
+                    TargetProcessTextBox.Text = _selectedNode.TargetProcess;
                 }
-                else if (_selectedNode.MacroType == "Run")
+                else
                 {
-                    ProgramPanel.Visibility = Visibility.Visible;
-                    ProgramTextBox.Text = _selectedNode.RawActionValue;
-                }
-                if (_selectedNode.MacroType == "SendText")
-                {
-                    TextPanel.Visibility = Visibility.Visible;
-                    TextTextBox.Text = _selectedNode.RawActionValue;
+                    TriggerHotkeyPanel.Visibility = Visibility.Visible;
+                    TriggerHotkeyTextBox.Text = _selectedNode.TriggerHotkey;
+
+                    if (_selectedNode.MacroType == "Send")
+                    {
+                        KeystrokePanel.Visibility = Visibility.Visible;
+                        KeystrokeTextBox.Text = _selectedNode.RawActionValue;
+                    }
+                    else if (_selectedNode.MacroType == "Run")
+                    {
+                        ProgramPanel.Visibility = Visibility.Visible;
+                        ProgramTextBox.Text = _selectedNode.RawActionValue;
+                    }
+                    else if (_selectedNode.MacroType == "SendText")
+                    {
+                        TextPanel.Visibility = Visibility.Visible;
+                        TextTextBox.Text = _selectedNode.RawActionValue;
+                    }
+                    else if (_selectedNode.MacroType == "RawAHK")
+                    {
+                        RawAHKPanel.Visibility = Visibility.Visible;
+                        RawAHKTextBox.Text = _selectedNode.RawActionValue;
+                    }
+                    else if (_selectedNode.MacroType == "SystemCommand")
+                    {
+                        SystemCommandPanel.Visibility = Visibility.Visible;
+                        foreach (ComboBoxItem item in SystemCommandComboBox.Items)
+                        {
+                            if (item.Tag.ToString() == _selectedNode.RawActionValue)
+                            {
+                                SystemCommandComboBox.SelectedItem = item;
+                                break;
+                            }
+                        }
+                    }
                 }
                 
                 ImagePathTextBlock.Text = string.IsNullOrWhiteSpace(_selectedNode.ImagePath) ? "No image selected." : _selectedNode.ImagePath;
+
+                bool foundIcon = false;
+                foreach (ComboBoxItem item in IconLibraryComboBox.Items)
+                {
+                    if ((item.Tag?.ToString() ?? "") == (_selectedNode.IconUnicode ?? ""))
+                    {
+                        IconLibraryComboBox.SelectedItem = item;
+                        foundIcon = true;
+                        break;
+                    }
+                }
+                if (!foundIcon) IconLibraryComboBox.SelectedIndex = 0;
 
                 _isUpdatingUI = false;
             }
@@ -187,11 +242,55 @@ namespace MacroUI
                 _selectedNode.RawActionValue = ProgramTextBox.Text;
             else if (_selectedNode.MacroType == "SendText" && TextTextBox.IsFocused)
                 _selectedNode.RawActionValue = TextTextBox.Text;
+            else if (_selectedNode.MacroType == "RawAHK" && RawAHKTextBox.IsFocused)
+                _selectedNode.RawActionValue = RawAHKTextBox.Text;
+        }
+
+        private void SystemCommandComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingUI || _selectedNode == null) return;
+            if (_selectedNode.MacroType == "SystemCommand" && SystemCommandComboBox.SelectedItem is ComboBoxItem item)
+            {
+                _selectedNode.RawActionValue = item.Tag.ToString();
+            }
+        }
+
+        private void ProcessOrHotkey_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isUpdatingUI || _selectedNode == null) return;
+            if (TargetProcessTextBox.IsFocused)
+                _selectedNode.TargetProcess = TargetProcessTextBox.Text;
+            else if (TriggerHotkeyTextBox.IsFocused)
+                _selectedNode.TriggerHotkey = TriggerHotkeyTextBox.Text;
+        }
+        private void IconLibraryComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingUI || _selectedNode == null) return;
+            if (IconLibraryComboBox.SelectedItem is ComboBoxItem item)
+            {
+                _selectedNode.IconUnicode = item.Tag?.ToString();
+            }
+        }
+
+        private void Settings_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdatingUI || _appSettings == null) return;
+            if (SettingsThemeComboBox.SelectedItem is ComboBoxItem themeItem)
+            {
+                _appSettings.Theme = themeItem.Tag.ToString();
+            }
+            if (SettingsAnimationComboBox.SelectedItem is ComboBoxItem animItem)
+            {
+                _appSettings.AnimationEasing = animItem.Tag.ToString();
+            }
         }
 
         private void CenterTitle_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // Do nothing, just capturing so xaml compiles. We save on Save_Click.
+            if (_isUpdatingUI) return;
+            if (_appSettings == null) return;
+            
+            _appSettings.CenterTitle = CenterTitleTextBox.Text;
         }
 
         private void DeleteOldImage(string relativePath)
@@ -260,6 +359,59 @@ namespace MacroUI
                 }
                 _selectedNode.ImagePath = null;
                 ImagePathTextBlock.Text = "No image selected.";
+            }
+        }
+
+        private void BrowseCenterLogo_Click(object sender, RoutedEventArgs e)
+        {
+            if (_appSettings == null) return;
+            
+            var dlg = new Microsoft.Win32.OpenFileDialog();
+            dlg.Filter = "Image Files (*.png;*.jpg;*.jpeg;*.ico)|*.png;*.jpg;*.jpeg;*.ico|All Files (*.*)|*.*";
+            
+            if (dlg.ShowDialog() == true)
+            {
+                try
+                {
+                    string imagesDir = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "Images"));
+                    if (!Directory.Exists(imagesDir))
+                    {
+                        Directory.CreateDirectory(imagesDir);
+                    }
+                    
+                    string ext = System.IO.Path.GetExtension(dlg.FileName);
+                    string newFileName = Guid.NewGuid().ToString() + ext;
+                    string newPath = System.IO.Path.Combine(imagesDir, newFileName);
+                    
+                    File.Copy(dlg.FileName, newPath, true);
+                    
+                    // Delete old image if one existed
+                    if (!string.IsNullOrEmpty(_appSettings.CenterImagePath))
+                    {
+                        DeleteOldImage(_appSettings.CenterImagePath);
+                    }
+                    
+                    string relativePath = System.IO.Path.Combine("Images", newFileName);
+                    _appSettings.CenterImagePath = relativePath;
+                    CenterLogoTextBlock.Text = relativePath;
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show("Failed to copy image: " + ex.Message);
+                }
+            }
+        }
+
+        private void ClearCenterLogo_Click(object sender, RoutedEventArgs e)
+        {
+            if (_appSettings != null)
+            {
+                if (!string.IsNullOrEmpty(_appSettings.CenterImagePath))
+                {
+                    DeleteOldImage(_appSettings.CenterImagePath);
+                }
+                _appSettings.CenterImagePath = null;
+                CenterLogoTextBlock.Text = "No logo selected.";
             }
         }
 
@@ -349,6 +501,27 @@ namespace MacroUI
             }
         }
 
+        private void BrowseHotstringImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button btn && btn.DataContext is HotstringEntry entry)
+            {
+                Microsoft.Win32.OpenFileDialog openFileDialog = new Microsoft.Win32.OpenFileDialog();
+                openFileDialog.Filter = "Image files (*.png;*.jpeg;*.jpg;*.gif)|*.png;*.jpeg;*.jpg;*.gif|All files (*.*)|*.*";
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    entry.ImagePath = openFileDialog.FileName;
+                }
+            }
+        }
+
+        private void ClearHotstringImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button btn && btn.DataContext is HotstringEntry entry)
+            {
+                entry.ImagePath = null;
+            }
+        }
+
         private void AddHotstring_Click(object sender, RoutedEventArgs e)
         {
             Hotstrings.Add(new HotstringEntry { Trigger = "", Replacement = "" });
@@ -369,14 +542,10 @@ namespace MacroUI
             File.WriteAllText(macrosPath, macrosJson);
 
             // --- 2. Save Settings ---
-            var settings = new Dictionary<string, string>
-            {
-                { "CenterTitle", CenterTitleTextBox.Text },
-                { "SelectKey", SelectKeyComboBox.Text },
-                { "BackKey", BackKeyComboBox.Text }
-            };
+            _appSettings.SelectKey = SelectKeyComboBox.Text;
+            _appSettings.BackKey = BackKeyComboBox.Text;
             string settingsPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "settings.json"));
-            File.WriteAllText(settingsPath, JsonSerializer.Serialize(settings, options));
+            File.WriteAllText(settingsPath, JsonSerializer.Serialize(_appSettings, options));
 
             // Also save as settings.ini for AHK to easily read
             string iniPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "settings.ini"));
@@ -404,17 +573,76 @@ namespace MacroUI
             foreach (var entry in validHotstrings)
             {
                 string trigger = entry.Trigger.Replace(":", "`:"); // Escape colons
-                string replacement = entry.Replacement
-                    .Replace("`", "``")
-                    .Replace("\r", "`r")
-                    .Replace("\n", "`n")
-                    .Replace("\"", "\"\"");
+                string ahkOptions = entry.MatchTypedCase ? "" : "C";
                 
-                ahkContent.AppendLine($"::{trigger}::");
-                ahkContent.AppendLine($"SendAsPaste(\"{replacement}\")");
+                ahkContent.AppendLine($":{ahkOptions}:{trigger}::");
+                
+                if (!string.IsNullOrWhiteSpace(entry.Replacement))
+                {
+                    string replacement = entry.Replacement
+                        .Replace("`", "``")
+                        .Replace("\r", "`r")
+                        .Replace("\n", "`n")
+                        .Replace("\"", "\"\"");
+                    
+                    ahkContent.AppendLine($"SendAsPaste(\"{replacement}\")");
+                }
+                
+                if (!string.IsNullOrWhiteSpace(entry.ImagePath))
+                {
+                    ahkContent.AppendLine($"PasteImage(\"{entry.ImagePath.Replace("\\", "\\\\")}\")");
+                }
+                
                 ahkContent.AppendLine("return");
             }
             File.WriteAllText(ahkPath, ahkContent.ToString(), Encoding.UTF8);
+
+            // --- 3.5 Generate custom_hotkeys.ahk ---
+            string customHotkeysPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "custom_hotkeys.ahk"));
+            StringBuilder customHotkeysContent = new StringBuilder();
+            customHotkeysContent.AppendLine("; Auto-generated direct hotkeys");
+            
+            // Define a recursive function to find all hotkeys
+            Action<IEnumerable<TreeNodeViewModel>> scanHotkeys = null;
+            scanHotkeys = (nodes) => {
+                foreach (var node in nodes)
+                {
+                    if (node.MacroType != "Category" && !string.IsNullOrWhiteSpace(node.TriggerHotkey) && !string.IsNullOrWhiteSpace(node.Action))
+                    {
+                        string hotkey = node.TriggerHotkey;
+                        string action = node.Action;
+                        
+                        customHotkeysContent.AppendLine($"{hotkey}::");
+                        
+                        if (action.StartsWith("send:"))
+                        {
+                            string keys = action.Substring(5);
+                            customHotkeysContent.AppendLine($"SendInput, {keys}");
+                        }
+                        else if (action.StartsWith("run:"))
+                        {
+                            string prog = action.Substring(4);
+                            customHotkeysContent.AppendLine($"Run, {prog}");
+                        }
+                        else if (action.StartsWith("sendtext:"))
+                        {
+                            string text = action.Substring(9)
+                                .Replace("`", "``")
+                                .Replace("\r", "`r")
+                                .Replace("\n", "`n")
+                                .Replace("\"", "\"\"");
+                            customHotkeysContent.AppendLine($"SendAsPaste(\"{text}\")");
+                        }
+                        customHotkeysContent.AppendLine("return");
+                    }
+                    if (node.Children != null && node.Children.Count > 0)
+                    {
+                        scanHotkeys(node.Children);
+                    }
+                }
+            };
+            scanHotkeys(RootNodes);
+            File.WriteAllText(customHotkeysPath, customHotkeysContent.ToString(), Encoding.UTF8);
 
             // --- 4. Notify & Reload ---
             string execFile = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "execute.txt"));
@@ -452,6 +680,12 @@ namespace MacroUI
         private string _replacement;
         public string Replacement { get => _replacement; set { _replacement = value; OnPropertyChanged(nameof(Replacement)); } }
 
+        private bool _matchTypedCase = true;
+        public bool MatchTypedCase { get => _matchTypedCase; set { _matchTypedCase = value; OnPropertyChanged(nameof(MatchTypedCase)); } }
+
+        private string _imagePath;
+        public string ImagePath { get => _imagePath; set { _imagePath = value; OnPropertyChanged(nameof(ImagePath)); } }
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged(string prop) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
     }
@@ -481,6 +715,27 @@ namespace MacroUI
         {
             get => _imagePath;
             set { _imagePath = value; OnPropertyChanged(nameof(ImagePath)); }
+        }
+
+        private string _iconUnicode;
+        public string IconUnicode
+        {
+            get => _iconUnicode;
+            set { _iconUnicode = value; OnPropertyChanged(nameof(IconUnicode)); }
+        }
+
+        private string _targetProcess;
+        public string TargetProcess
+        {
+            get => _targetProcess;
+            set { _targetProcess = value; OnPropertyChanged(nameof(TargetProcess)); }
+        }
+
+        private string _triggerHotkey;
+        public string TriggerHotkey
+        {
+            get => _triggerHotkey;
+            set { _triggerHotkey = value; OnPropertyChanged(nameof(TriggerHotkey)); }
         }
 
         private string _action;
@@ -525,6 +780,10 @@ namespace MacroUI
                 Action = "run:" + RawActionValue;
             else if (MacroType == "SendText")
                 Action = "sendtext:" + RawActionValue;
+            else if (MacroType == "RawAHK")
+                Action = "ahk:" + RawActionValue;
+            else if (MacroType == "SystemCommand")
+                Action = "sys:" + RawActionValue;
         }
 
         private void ParseAction()
@@ -550,6 +809,16 @@ namespace MacroUI
                 MacroType = "Run";
                 RawActionValue = Action.Substring(4);
             }
+            else if (Action.StartsWith("ahk:"))
+            {
+                MacroType = "RawAHK";
+                RawActionValue = Action.Substring(4);
+            }
+            else if (Action.StartsWith("sys:"))
+            {
+                MacroType = "SystemCommand";
+                RawActionValue = Action.Substring(4);
+            }
             else
             {
                 MacroType = "Send";
@@ -562,10 +831,16 @@ namespace MacroUI
         {
             Key = key;
             Parent = parent;
-            Name = node.Name;
-            Action = node.Action;
-            ImagePath = node.ImagePath;
-            ParseAction();
+            if (node != null)
+            {
+                Name = node.Name;
+                Action = node.Action;
+                ImagePath = node.ImagePath;
+                TargetProcess = node.TargetProcess;
+                TriggerHotkey = node.TriggerHotkey;
+                IconUnicode = node.IconUnicode;
+                ParseAction();
+            }
             if (node.Children != null)
             {
                 foreach (var kvp in node.Children)
@@ -577,7 +852,14 @@ namespace MacroUI
 
         public MacroNode ToMacroNode()
         {
-            var node = new MacroNode { Name = Name, Action = (MacroType == "Category") ? null : Action, ImagePath = ImagePath };
+            var node = new MacroNode { 
+                Name = Name, 
+                Action = (MacroType == "Category") ? null : Action, 
+                ImagePath = ImagePath,
+                TargetProcess = TargetProcess,
+                TriggerHotkey = TriggerHotkey,
+                IconUnicode = IconUnicode
+            };
             if (Children.Count > 0 || MacroType == "Category")
             {
                 node.Children = new Dictionary<string, MacroNode>();

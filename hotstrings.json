@@ -1,22 +1,38 @@
 [
   {
     "Trigger": ".ec0",
-    "Replacement": "carlarvie0@gmail.com"
+    "Replacement": "carlarvie0@gmail.com",
+    "MatchTypedCase": true,
+    "ImagePath": null
   },
   {
     "Trigger": ".ea",
-    "Replacement": "arvielambit@gmail.com"
+    "Replacement": "arvielambit@gmail.com",
+    "MatchTypedCase": true,
+    "ImagePath": null
   },
   {
     "Trigger": ".ec09",
-    "Replacement": "carlarvie09@gmail.com"
+    "Replacement": "carlarvie09@gmail.com",
+    "MatchTypedCase": true,
+    "ImagePath": null
   },
   {
     "Trigger": ".ec9",
-    "Replacement": "carlarvie9@gmail.com"
+    "Replacement": "carlarvie9@gmail.com",
+    "MatchTypedCase": true,
+    "ImagePath": null
   },
   {
     "Trigger": ".eax9",
-    "Replacement": "aciexie9@gmail.com"
+    "Replacement": "aciexie9@gmail.com",
+    "MatchTypedCase": true,
+    "ImagePath": null
+  },
+  {
+    "Trigger": ".test",
+    "Replacement": "hello [CURSOR], janna aira",
+    "MatchTypedCase": true,
+    "ImagePath": null
   }
 ]

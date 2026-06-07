@@ -71,6 +71,24 @@ ExecuteMacro(action) {
     } else if (prefix4 == "run:") {
         cmd := Trim(SubStr(action, 5))
         Run, %cmd%
+    } else if (prefix4 == "sys:") {
+        cmd := Trim(SubStr(action, 5))
+        if (cmd == "LockComputer") {
+            DllCall("user32.dll\LockWorkStation")
+        } else if (cmd == "SleepComputer") {
+            DllCall("PowrProf\SetSuspendState", "int", 0, "int", 0, "int", 0)
+        } else if (cmd == "MuteAudio") {
+            Send {Volume_Mute}
+        } else if (cmd == "TurnOffDisplay") {
+            SendMessage, 0x112, 0xF170, 2,, Program Manager
+        } else if (cmd == "PlayPauseMedia") {
+            Send {Media_Play_Pause}
+        }
+    } else if (prefix4 == "ahk:") {
+        cmd := Trim(SubStr(action, 5))
+        FileDelete, %A_ScriptDir%\temp_macro.ahk
+        FileAppend, %cmd%, %A_ScriptDir%\temp_macro.ahk
+        Run, "%A_AhkPath%" "%A_ScriptDir%\temp_macro.ahk"
     } else if InStr(action, "RELOAD") {
         Reload
     } else {
@@ -81,11 +99,40 @@ ExecuteMacro(action) {
 
 SendAsPaste(text) {
     FileAppend, SendAsPaste called with %text%`n, macro_debug.txt
+    
+    ; Resolve AHK dynamic variables (e.g. %A_YYYY%)
+    Transform, text, Deref, %text%
+    
+    ; Check for [CURSOR] token
+    cursorPos := InStr(text, "[CURSOR]")
+    if (cursorPos) {
+        text := StrReplace(text, "[CURSOR]", "")
+    }
+
     ClipSave := ClipboardAll
     Clipboard := ""
     Clipboard := text
     ClipWait, 1
     Sleep, 50
+    Send, ^v
+    Sleep, 150
+    Clipboard := ClipSave
+    
+    ; Position cursor if [CURSOR] token was used
+    if (cursorPos) {
+        charsToMoveBack := StrLen(text) - cursorPos + 1
+        if (charsToMoveBack > 0) {
+            Send, {Left %charsToMoveBack%}
+        }
+    }
+}
+
+PasteImage(imagePath) {
+    FileAppend, PasteImage called with %imagePath%`n, macro_debug.txt
+    ClipSave := ClipboardAll
+    psCommand := "Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile('" . imagePath . "'); [System.Windows.Forms.Clipboard]::SetImage($img);"
+    RunWait, powershell.exe -NoProfile -Command "%psCommand%", , Hide
+    Sleep, 100
     Send, ^v
     Sleep, 150
     Clipboard := ClipSave
@@ -145,3 +192,5 @@ BackAction:
         Send {%key%}
     }
 return
+
+#Include *i %A_ScriptDir%\custom_hotkeys.ahk

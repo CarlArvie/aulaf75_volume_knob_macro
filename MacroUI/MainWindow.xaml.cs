@@ -13,6 +13,8 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Runtime.InteropServices;
+using System.Text;
 using MessageBox = System.Windows.MessageBox;
 using Point = System.Windows.Point;
 using Size = System.Windows.Size;
@@ -23,11 +25,64 @@ namespace MacroUI
 {
     public partial class MainWindow : Window
     {
+        [DllImport("user32.dll")]
+        static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("kernel32.dll")]
+        static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
+
+        [DllImport("kernel32.dll")]
+        static extern bool QueryFullProcessImageName(IntPtr hProcess, uint dwFlags, StringBuilder lpExeName, ref uint lpdwSize);
+
+        [DllImport("kernel32.dll")]
+        static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetCursorPos(ref Win32Point pt);
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct Win32Point
+        {
+            public Int32 X;
+            public Int32 Y;
+        };
+
+        private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+        private string GetForegroundProcessName()
+        {
+            try
+            {
+                IntPtr hWnd = GetForegroundWindow();
+                if (hWnd == IntPtr.Zero) return null;
+
+                GetWindowThreadProcessId(hWnd, out uint processId);
+                IntPtr hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
+                if (hProcess == IntPtr.Zero) return null;
+
+                uint capacity = 1024;
+                StringBuilder sb = new StringBuilder((int)capacity);
+                if (QueryFullProcessImageName(hProcess, 0, sb, ref capacity))
+                {
+                    CloseHandle(hProcess);
+                    return System.IO.Path.GetFileName(sb.ToString());
+                }
+                CloseHandle(hProcess);
+            }
+            catch { }
+            return null;
+        }
+
         private MacroNode _rootNode;
         private Stack<MacroNode> _navigationHistory = new Stack<MacroNode>();
         private MacroNode _currentNode;
         private int _selectedIndex = 0;
         private bool _isVisible = false;
+        private AppSettings _appSettings = new AppSettings();
         
         // Aesthetic Configuration
         private const double MenuRadius = 280;
@@ -64,6 +119,14 @@ namespace MacroUI
                 var rootDict = JsonSerializer.Deserialize<Dictionary<string, MacroNode>>(json);
                 _rootNode = new MacroNode { Name = "Root", Children = rootDict };
                 _currentNode = _rootNode;
+
+                string settingsPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "settings.json"));
+                if (File.Exists(settingsPath))
+                {
+                    string settingsJson = File.ReadAllText(settingsPath);
+                    var settings = JsonSerializer.Deserialize<AppSettings>(settingsJson);
+                    if (settings != null) _appSettings = settings;
+                }
             }
             catch (Exception ex)
             {
@@ -103,11 +166,33 @@ namespace MacroUI
 
             this.BeginAnimation(Window.OpacityProperty, anim);
 
+            IEasingFunction easingFunc = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+            if (_appSettings.AnimationEasing == "Elastic")
+            {
+                easingFunc = new ElasticEase { Oscillations = 1, Springiness = 5, EasingMode = EasingMode.EaseOut };
+            }
+            else if (_appSettings.AnimationEasing == "Linear")
+            {
+                easingFunc = null; // null easing function means linear
+            }
+            else if (_appSettings.AnimationEasing == "Back")
+            {
+                easingFunc = new BackEase { Amplitude = 0.5, EasingMode = EasingMode.EaseOut };
+            }
+            else if (_appSettings.AnimationEasing == "Cubic")
+            {
+                easingFunc = new CubicEase { EasingMode = EasingMode.EaseOut };
+            }
+            else if (_appSettings.AnimationEasing == "Bounce")
+            {
+                easingFunc = new BounceEase { Bounces = 2, Bounciness = 2, EasingMode = EasingMode.EaseOut };
+            }
+
             DoubleAnimation scaleAnim = new DoubleAnimation
             {
                 To = show ? 1.0 : 0.85,
                 Duration = TimeSpan.FromMilliseconds(250),
-                EasingFunction = new ElasticEase { Oscillations = 1, Springiness = 5, EasingMode = EasingMode.EaseOut }
+                EasingFunction = easingFunc
             };
 
             if (MainCanvas.RenderTransform is ScaleTransform st)
@@ -156,6 +241,27 @@ namespace MacroUI
         {
             if (cmd == "SHOW")
             {
+                _currentNode = _rootNode; // Default
+                string activeProcess = GetForegroundProcessName();
+
+                if (!string.IsNullOrEmpty(activeProcess) && _rootNode?.Children != null)
+                {
+                    foreach (var kvp in _rootNode.Children)
+                    {
+                        if (string.Equals(kvp.Value.TargetProcess, activeProcess, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _currentNode = kvp.Value;
+                            break;
+                        }
+                    }
+                }
+
+                _selectedIndex = 0; // reset selection
+
+                MainCanvas.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
+                MainCanvas.VerticalAlignment = System.Windows.VerticalAlignment.Center;
+                MainCanvas.Margin = new Thickness(0);
+
                 _isVisible = true;
                 AnimateVisibility(true);
                 this.Activate();
@@ -271,45 +377,58 @@ namespace MacroUI
             Canvas.SetTop(centerHub, cy - centerHub.Height / 2);
             MainCanvas.Children.Add(centerHub);
 
-            // Read Center Text from Settings
-            string centerTitleText = "AULA";
-            try
+            // Read Center Text from Settings is handled by _appSettings
+
+            // Draw center content
+            if (_currentNode.Name == "Root" && !string.IsNullOrEmpty(_appSettings.CenterImagePath))
             {
-                string settingsPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "settings.json"));
-                if (File.Exists(settingsPath))
+                try
                 {
-                    string settingsJson = File.ReadAllText(settingsPath);
-                    var settings = JsonSerializer.Deserialize<Dictionary<string, string>>(settingsJson);
-                    if (settings != null && settings.ContainsKey("CenterTitle") && !string.IsNullOrWhiteSpace(settings["CenterTitle"]))
+                    string fullImagePath = System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", _appSettings.CenterImagePath));
+                    if (File.Exists(fullImagePath))
                     {
-                        centerTitleText = settings["CenterTitle"];
+                        var bmp = new BitmapImage(new Uri(fullImagePath));
+                        var imgBrush = new ImageBrush(bmp) { Stretch = Stretch.UniformToFill };
+                        var imgEllipse = new Ellipse
+                        {
+                            Width = MenuInnerRadius * 2 - 20, // Exactly the same size as centerHub
+                            Height = MenuInnerRadius * 2 - 20,
+                            Fill = imgBrush
+                        };
+                        
+                        // We will add an EllipseGeometry to clip exactly if needed, but Ellipse + UniformToFill already makes a perfect circle
+                        Canvas.SetLeft(imgEllipse, cx - (imgEllipse.Width / 2));
+                        Canvas.SetTop(imgEllipse, cy - (imgEllipse.Height / 2));
+                        MainCanvas.Children.Add(imgEllipse);
                     }
                 }
+                catch { }
             }
-            catch { }
-
-            // Draw center text
-            var centerText = new TextBlock
+            else
             {
-                Text = _currentNode.Name == "Root" ? centerTitleText : _currentNode.Name.ToUpper(),
-                Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 200, 255)), // Cyan accent
-                FontSize = 20,
-                FontWeight = FontWeights.Bold,
-                TextAlignment = TextAlignment.Center,
-                Width = 160
-            };
-            
-            // Measure the text to center it properly vertically
-            centerText.Measure(new Size(Double.PositiveInfinity, Double.PositiveInfinity));
-            Canvas.SetLeft(centerText, cx - 80);
-            Canvas.SetTop(centerText, cy - centerText.DesiredSize.Height / 2);
-            MainCanvas.Children.Add(centerText);
+                string centerTitleText = _appSettings.CenterTitle;
+                var centerText = new TextBlock
+                {
+                    Text = _currentNode.Name == "Root" ? centerTitleText : _currentNode.Name.ToUpper(),
+                    Foreground = new SolidColorBrush(Color.FromArgb(255, 0, 200, 255)), // Cyan accent
+                    FontSize = 20,
+                    FontWeight = FontWeights.Bold,
+                    TextAlignment = TextAlignment.Center,
+                    Width = 160
+                };
+                
+                // Measure the text to center it properly vertically
+                centerText.Measure(new Size(Double.PositiveInfinity, Double.PositiveInfinity));
+                Canvas.SetLeft(centerText, cx - 80);
+                Canvas.SetTop(centerText, cy - centerText.DesiredSize.Height / 2);
+                MainCanvas.Children.Add(centerText);
+            }
 
             int i = 0;
             foreach (var kvp in _currentNode.Children)
             {
                 bool isSelected = (i == _selectedIndex);
-                DrawSlice(cx, cy, MenuRadius, MenuInnerRadius, i * angleStep, (i + 1) * angleStep, isSelected, kvp.Value.Name, kvp.Value.ImagePath);
+                DrawSlice(cx, cy, MenuRadius, MenuInnerRadius, i * angleStep, (i + 1) * angleStep, isSelected, kvp.Value.Name, kvp.Value.ImagePath, kvp.Value.IconUnicode);
                 i++;
             }
 
@@ -319,7 +438,7 @@ namespace MacroUI
             DrawSlice(cx, cy, MenuRadius, MenuInnerRadius, i * angleStep, (i + 1) * angleStep, isBackSelected, backText);
         }
 
-        private void DrawSlice(double cx, double cy, double baseRadius, double innerRadius, double startAngle, double endAngle, bool isSelected, string text, string imagePath = null)
+        private void DrawSlice(double cx, double cy, double baseRadius, double innerRadius, double startAngle, double endAngle, bool isSelected, string text, string imagePath = null, string iconUnicode = null)
         {
             // Apply Gap
             double adjustedStartAngle = startAngle + (SliceGapAngle / 2);
@@ -351,12 +470,34 @@ namespace MacroUI
 
             geom.Figures.Add(fig);
 
+            Color themeMain = Color.FromArgb(230, 0, 180, 235); // Cyan
+            Color themeStroke = Color.FromArgb(255, 100, 220, 255);
+            Color shadowColor = Color.FromRgb(0, 180, 235);
+
+            if (_appSettings.Theme == "Crimson Red") {
+                themeMain = Color.FromArgb(230, 235, 30, 30);
+                themeStroke = Color.FromArgb(255, 255, 100, 100);
+                shadowColor = Color.FromRgb(235, 30, 30);
+            } else if (_appSettings.Theme == "Toxic Green") {
+                themeMain = Color.FromArgb(230, 30, 235, 30);
+                themeStroke = Color.FromArgb(255, 100, 255, 100);
+                shadowColor = Color.FromRgb(30, 235, 30);
+            } else if (_appSettings.Theme == "Royal Purple") {
+                themeMain = Color.FromArgb(230, 130, 0, 255);
+                themeStroke = Color.FromArgb(255, 180, 100, 255);
+                shadowColor = Color.FromRgb(130, 0, 255);
+            } else if (_appSettings.Theme == "Amethyst") {
+                themeMain = Color.FromArgb(230, 190, 80, 255);
+                themeStroke = Color.FromArgb(255, 220, 150, 255);
+                shadowColor = Color.FromRgb(190, 80, 255);
+            }
+
             var pathFill = isSelected 
-                ? new SolidColorBrush(Color.FromArgb(230, 0, 180, 235)) // Neon Blue/Cyan
+                ? new SolidColorBrush(themeMain)
                 : new SolidColorBrush(Color.FromArgb(200, 30, 30, 35));  // Dark Gray glass
 
             var pathStroke = isSelected
-                ? new SolidColorBrush(Color.FromArgb(255, 100, 220, 255))
+                ? new SolidColorBrush(themeStroke)
                 : new SolidColorBrush(Color.FromArgb(100, 80, 80, 80));
 
             System.Windows.Shapes.Path path = new System.Windows.Shapes.Path
@@ -371,7 +512,7 @@ namespace MacroUI
             {
                 path.Effect = new DropShadowEffect 
                 { 
-                    Color = Color.FromRgb(0, 180, 235), 
+                    Color = shadowColor, 
                     BlurRadius = 25, 
                     ShadowDepth = 0,
                     Opacity = 0.8
@@ -412,6 +553,22 @@ namespace MacroUI
                 catch { }
             }
 
+            StackPanel sp = new StackPanel { Orientation = System.Windows.Controls.Orientation.Vertical, HorizontalAlignment = System.Windows.HorizontalAlignment.Center };
+
+            if (!string.IsNullOrEmpty(iconUnicode))
+            {
+                TextBlock iconTb = new TextBlock
+                {
+                    Text = iconUnicode,
+                    FontFamily = new System.Windows.Media.FontFamily("Segoe UI Symbol"),
+                    Foreground = isSelected ? Brushes.Black : Brushes.White,
+                    FontSize = isSelected ? 28 : 24,
+                    TextAlignment = TextAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 2)
+                };
+                sp.Children.Add(iconTb);
+            }
+
             TextBlock tb = new TextBlock
             {
                 Text = text,
@@ -420,15 +577,16 @@ namespace MacroUI
                 FontWeight = isSelected ? FontWeights.ExtraBold : FontWeights.SemiBold,
                 TextAlignment = TextAlignment.Center
             };
+            sp.Children.Add(tb);
 
-            tb.Measure(new Size(Double.PositiveInfinity, Double.PositiveInfinity));
+            sp.Measure(new Size(Double.PositiveInfinity, Double.PositiveInfinity));
             
             // To prevent overlap, we can optionally rotate the text slightly, 
             // but for simplicity, we will just position it centered.
-            Canvas.SetLeft(tb, cx + textRadius * Math.Cos(midRad) - tb.DesiredSize.Width / 2.0);
-            Canvas.SetTop(tb, cy + textRadius * Math.Sin(midRad) - tb.DesiredSize.Height / 2.0);
+            Canvas.SetLeft(sp, cx + textRadius * Math.Cos(midRad) - sp.DesiredSize.Width / 2.0);
+            Canvas.SetTop(sp, cy + textRadius * Math.Sin(midRad) - sp.DesiredSize.Height / 2.0);
             
-            MainCanvas.Children.Add(tb);
+            MainCanvas.Children.Add(sp);
         }
     }
 }

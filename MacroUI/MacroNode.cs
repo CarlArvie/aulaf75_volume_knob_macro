@@ -16,6 +16,18 @@ namespace MacroUI
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string ImagePath { get; set; }
 
+        [JsonPropertyName("targetProcess")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string TargetProcess { get; set; }
+
+        [JsonPropertyName("triggerHotkey")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string TriggerHotkey { get; set; }
+
+        [JsonPropertyName("iconUnicode")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string IconUnicode { get; set; }
+
         [JsonPropertyName("children")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public Dictionary<string, MacroNode> Children { get; set; }

@@ -14,3 +14,6 @@ return
 ::.eax9::
 SendAsPaste("aciexie9@gmail.com")
 return
+::.test::
+SendAsPaste("hello [CURSOR], janna aira")
+return

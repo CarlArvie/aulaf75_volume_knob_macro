@@ -136,6 +136,13 @@
                         <TextBlock Text="Menu Center Title" FontSize="14" FontWeight="SemiBold" Foreground="#888" Margin="0,15,0,5" HorizontalAlignment="Center"/>
                         <TextBox x:Name="CenterTitleTextBox" Text="AULA" Width="200" HorizontalAlignment="Center" TextAlignment="Center" FontWeight="Bold" FontSize="16" Foreground="#007ACC" TextChanged="CenterTitle_TextChanged"/>
 
+                        <TextBlock Text="Menu Center Logo" FontSize="14" FontWeight="SemiBold" Foreground="#888" Margin="0,15,0,5" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="CenterLogoTextBlock" Text="No logo selected." FontSize="12" Foreground="#666" HorizontalAlignment="Center" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Button Content="🖼️ Browse Logo" Click="BrowseCenterLogo_Click" Padding="10,5" FontSize="12"/>
+                            <Button Content="❌ Clear Logo" Click="ClearCenterLogo_Click" Padding="10,5" FontSize="12" Background="#A22"/>
+                        </StackPanel>
+
                         <TextBlock Text="Menu Select Key" FontSize="14" FontWeight="SemiBold" Foreground="#888" Margin="0,15,0,5" HorizontalAlignment="Center"/>
                         <ComboBox x:Name="SelectKeyComboBox" Width="200" HorizontalAlignment="Center" IsEditable="True">
                             <ComboBoxItem Content="LButton"/>
@@ -172,48 +179,121 @@
                         </StackPanel>
 
                         <!-- Editor -->
-                        <StackPanel x:Name="EditorPanel" Visibility="Hidden">
-                            <TextBlock Text="Edit Node" FontSize="22" FontWeight="Bold" Margin="0,0,0,25" Foreground="#007ACC"/>
-                            
-                            <TextBlock Text="Display Name" FontSize="14" FontWeight="SemiBold"/>
-                            <TextBox x:Name="NameTextBox" TextChanged="Field_TextChanged" FontSize="15" Padding="10"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,10,0">
+                            <StackPanel x:Name="EditorPanel" Visibility="Hidden">
+                                <TextBlock Text="Edit Node" FontSize="22" FontWeight="Bold" Margin="0,0,0,25" Foreground="#007ACC"/>
+                                
+                                <TextBlock Text="Display Name" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBox x:Name="NameTextBox" TextChanged="Field_TextChanged" FontSize="15" Padding="10"/>
 
-                            <TextBlock Text="Macro Type" FontSize="14" FontWeight="SemiBold"/>
-                            <ComboBox x:Name="TypeComboBox" SelectionChanged="TypeComboBox_SelectionChanged" Margin="0,5,0,20" FontSize="15" Padding="8" Background="#2D2D30" Foreground="Black">
-                                <ComboBoxItem Content="📁 Category (Folder)" Tag="Category"/>
-                                <ComboBoxItem Content="⌨️ Keystroke Shortcut" Tag="Send"/>
-                                <ComboBoxItem Content="🚀 Run Program / Website" Tag="Run"/>
-                                <ComboBoxItem Content="📝 Paste Auto-Text" Tag="SendText"/>
-                            </ComboBox>
+                                <TextBlock Text="Macro Type" FontSize="14" FontWeight="SemiBold"/>
+                                <ComboBox x:Name="TypeComboBox" SelectionChanged="TypeComboBox_SelectionChanged" Margin="0,5,0,20" FontSize="15" Padding="8" Background="#2D2D30" Foreground="Black">
+                                    <ComboBoxItem Content="📁 Category (Folder)" Tag="Category"/>
+                                    <ComboBoxItem Content="⌨️ Keystroke Shortcut" Tag="Send"/>
+                                    <ComboBoxItem Content="🚀 Run Program / Website" Tag="Run"/>
+                                    <ComboBoxItem Content="📝 Paste Auto-Text" Tag="SendText"/>
+                                    <ComboBoxItem Content="🛠️ Raw AHK Script" Tag="RawAHK"/>
+                                    <ComboBoxItem Content="💻 System Command" Tag="SystemCommand"/>
+                                </ComboBox>
 
-                            <StackPanel x:Name="KeystrokePanel" Visibility="Collapsed">
-                                <TextBlock Text="Keys to press (e.g. ^c for Ctrl+C)" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBox x:Name="KeystrokeTextBox" TextChanged="RawField_TextChanged" FontSize="15" Padding="10" FontFamily="Consolas"/>
-                            </StackPanel>
-
-                            <StackPanel x:Name="ProgramPanel" Visibility="Collapsed">
-                                <TextBlock Text="Program Path or URL (e.g. https://... or C:\...)" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBox x:Name="ProgramTextBox" TextChanged="RawField_TextChanged" FontSize="15" Padding="10" FontFamily="Consolas"/>
-                            </StackPanel>
-
-                            <StackPanel x:Name="TextPanel" Visibility="Collapsed">
-                                <TextBlock Text="Text to Paste" FontSize="14" FontWeight="SemiBold"/>
-                                <TextBox x:Name="TextTextBox" TextChanged="RawField_TextChanged" FontSize="15" Padding="10" AcceptsReturn="True" Height="120" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
-                            </StackPanel>
-
-                            <StackPanel Margin="0,20,0,0">
-                                <TextBlock Text="Slice Background Image" FontSize="14" FontWeight="SemiBold"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                    <Button Content="Browse Image..." Click="BrowseImage_Click" Padding="10,5" />
-                                    <Button Content="Clear Image" Click="ClearImage_Click" Padding="10,5" Margin="5,0,0,0" Background="#333" Foreground="#CCC" />
+                                <StackPanel x:Name="TargetProcessPanel" Visibility="Collapsed" Margin="0,0,0,15">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Target Process" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="❓" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center" ToolTip="Enter the executable name (e.g., chrome.exe). This category will automatically open when this app is active."/>
+                                    </StackPanel>
+                                    <TextBox x:Name="TargetProcessTextBox" TextChanged="ProcessOrHotkey_TextChanged" FontSize="15" Padding="10" Margin="0,5,0,0"/>
                                 </StackPanel>
-                                <TextBlock x:Name="ImagePathTextBlock" Text="No image selected." FontSize="12" Foreground="#888" Margin="0,5,0,0" TextWrapping="Wrap"/>
-                            </StackPanel>
 
-                            <Grid Margin="0,20,0,0">
-                                <Button Content="🗑️ Delete Node" Background="#C50B0B" HorizontalAlignment="Left" Click="Delete_Click" Padding="20,12" FontSize="14"/>
-                            </Grid>
-                        </StackPanel>
+                                <StackPanel x:Name="TriggerHotkeyPanel" Visibility="Collapsed" Margin="0,0,0,15">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Direct Trigger Hotkey" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="❓" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center" ToolTip="Assign a hotkey to run this macro instantly without opening the radial menu. Use modifiers: ^ (Ctrl), + (Shift), ! (Alt). Example: ^+a for Ctrl+Shift+A."/>
+                                    </StackPanel>
+                                    <TextBox x:Name="TriggerHotkeyTextBox" TextChanged="ProcessOrHotkey_TextChanged" FontSize="15" Padding="10" Margin="0,5,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel x:Name="KeystrokePanel" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Keys to Press" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="❓" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center" ToolTip="Enter AutoHotkey keystrokes. Use modifiers: ^ (Ctrl), + (Shift), ! (Alt), # (Win). Example: ^c to copy."/>
+                                    </StackPanel>
+                                    <TextBox x:Name="KeystrokeTextBox" TextChanged="RawField_TextChanged" FontSize="15" Padding="10" FontFamily="Consolas" Margin="0,5,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel x:Name="ProgramPanel" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Program Path or URL" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="❓" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center" ToolTip="Enter an absolute path (C:\Programs\app.exe) or a website URL (https://google.com)."/>
+                                    </StackPanel>
+                                    <TextBox x:Name="ProgramTextBox" TextChanged="RawField_TextChanged" FontSize="15" Padding="10" FontFamily="Consolas" Margin="0,5,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel x:Name="TextPanel" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Text to Paste" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="❓" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center" ToolTip="Enter plain text to automatically type out when triggered."/>
+                                    </StackPanel>
+                                    <TextBox x:Name="TextTextBox" TextChanged="RawField_TextChanged" FontSize="15" Padding="10" AcceptsReturn="True" Height="120" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel x:Name="RawAHKPanel" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Raw AutoHotkey Script" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="❓" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center" ToolTip="Write a full, multi-line AutoHotkey script. It will be saved to a temporary file and executed natively."/>
+                                    </StackPanel>
+                                    <TextBox x:Name="RawAHKTextBox" TextChanged="RawField_TextChanged" FontSize="14" Padding="10" AcceptsReturn="True" Height="150" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                </StackPanel>
+
+                                <StackPanel x:Name="SystemCommandPanel" Visibility="Collapsed">
+                                    <TextBlock Text="Select System Command" FontSize="14" FontWeight="SemiBold"/>
+                                    <ComboBox x:Name="SystemCommandComboBox" SelectionChanged="SystemCommandComboBox_SelectionChanged" FontSize="15" Padding="8" Margin="0,5,0,0">
+                                        <ComboBoxItem Content="Lock Computer" Tag="LockComputer"/>
+                                        <ComboBoxItem Content="Sleep Computer" Tag="SleepComputer"/>
+                                        <ComboBoxItem Content="Mute/Unmute Audio" Tag="MuteAudio"/>
+                                        <ComboBoxItem Content="Turn Off Display" Tag="TurnOffDisplay"/>
+                                        <ComboBoxItem Content="Play/Pause Media" Tag="PlayPauseMedia"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Margin="0,20,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Built-in Icon" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="❓" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center" ToolTip="Select a scalable vector icon to display on the menu slice."/>
+                                    </StackPanel>
+                                    <ComboBox x:Name="IconLibraryComboBox" SelectionChanged="IconLibraryComboBox_SelectionChanged" FontFamily="Segoe UI Symbol" FontSize="18" Padding="8" Margin="0,5,0,0">
+                                        <ComboBoxItem Content="None" Tag=""/>
+                                        <ComboBoxItem Content="⚙️ Settings" Tag="⚙️"/>
+                                        <ComboBoxItem Content="🌐 Web" Tag="🌐"/>
+                                        <ComboBoxItem Content="📂 Folder" Tag="📂"/>
+                                        <ComboBoxItem Content="🎵 Music" Tag="🎵"/>
+                                        <ComboBoxItem Content="🎮 Game" Tag="🎮"/>
+                                        <ComboBoxItem Content="💬 Chat" Tag="💬"/>
+                                        <ComboBoxItem Content="📸 Camera" Tag="📸"/>
+                                        <ComboBoxItem Content="📝 Edit" Tag="📝"/>
+                                        <ComboBoxItem Content="🔍 Search" Tag="🔍"/>
+                                        <ComboBoxItem Content="⭐ Star" Tag="⭐"/>
+                                        <ComboBoxItem Content="🔥 Fire" Tag="🔥"/>
+                                        <ComboBoxItem Content="🚀 Rocket" Tag="🚀"/>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Margin="0,20,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Slice Background Image" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock Text="❓" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center" ToolTip="Select an image to display in this macro's pie slice in the radial menu."/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                        <Button Content="Browse Image..." Click="BrowseImage_Click" Padding="10,5" />
+                                        <Button Content="Clear Image" Click="ClearImage_Click" Padding="10,5" Margin="5,0,0,0" Background="#333" Foreground="#CCC" />
+                                    </StackPanel>
+                                    <TextBlock x:Name="ImagePathTextBlock" Text="No image selected." FontSize="12" Foreground="#888" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <Grid Margin="0,20,0,0">
+                                    <Button Content="🗑️ Delete Node" Background="#C50B0B" HorizontalAlignment="Left" Click="Delete_Click" Padding="20,12" FontSize="14"/>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
                     </Grid>
                 </Border>
             </Grid>
@@ -230,6 +310,7 @@
                 <StackPanel Grid.Row="0" Margin="0,0,0,15">
                     <TextBlock Text="Background Text Detectors" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,5"/>
                     <TextBlock Text="Configure text snippets that automatically expand when you type their trigger keyword." FontSize="14" Foreground="#888"/>
+                    <TextBlock Text="Tip: Use variables like %A_YYYY% (year), %Clipboard%, or add [CURSOR] to set text caret position!" FontSize="12" Foreground="#007ACC" Margin="0,5,0,0"/>
                 </StackPanel>
                 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
@@ -246,12 +327,19 @@
 
                                         <StackPanel Grid.Column="0" Margin="0,0,15,0">
                                             <TextBlock Text="Trigger Word (e.g. .email)" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,5"/>
-                                            <TextBox Text="{Binding Trigger, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Padding="8" Margin="0"/>
+                                            <TextBox Text="{Binding Trigger, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Padding="8" Margin="0,0,0,10"/>
+                                            <CheckBox Content="Match Typed Case" IsChecked="{Binding MatchTypedCase, Mode=TwoWay}" Foreground="#CCC" ToolTip="If checked, typing .EMAIL outputs upper-case. If unchecked, trigger is strictly case-sensitive."/>
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="1" Margin="0,0,15,0">
                                             <TextBlock Text="Replacement Text" FontSize="12" Foreground="#AAAAAA" Margin="0,0,0,5"/>
-                                            <TextBox Text="{Binding Replacement, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" FontSize="14" Padding="8" Margin="0"/>
+                                            <TextBox Text="{Binding Replacement, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" FontSize="14" Padding="8" Margin="0,0,0,5"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="Or attach image:" FontSize="12" Foreground="#888" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <Button Content="🖼️ Browse" Click="BrowseHotstringImage_Click" Padding="5,2" FontSize="12" Background="#444" Foreground="#EEE"/>
+                                                <Button Content="❌ Clear" Click="ClearHotstringImage_Click" Padding="5,2" FontSize="12" Background="#A22" Foreground="#EEE" Margin="5,0,0,0"/>
+                                                <TextBlock Text="{Binding ImagePath}" FontSize="11" Foreground="#666" VerticalAlignment="Center" Margin="10,0,0,0" MaxWidth="150" TextTrimming="CharacterEllipsis" ToolTip="{Binding ImagePath}"/>
+                                            </StackPanel>
                                         </StackPanel>
 
                                         <Button Grid.Column="2" Content="🗑️ Delete" Background="#C50B0B" Foreground="White" Padding="12,8" VerticalAlignment="Center" Click="DeleteHotstring_Click" Cursor="Hand" Margin="0"/>
@@ -264,6 +352,34 @@
                 
                 <Button Grid.Row="2" Content="➕ Add New Snippet" Background="#28A745" Foreground="White" Padding="20,12" FontWeight="Bold" FontSize="14" HorizontalAlignment="Left" Click="AddHotstring_Click" Margin="0,5,0,0"/>
             </Grid>
+        </TabItem>
+
+        <TabItem Header="🎨 Aesthetics">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20" Width="400" HorizontalAlignment="Left">
+                    <TextBlock Text="Global Aesthetics &amp; Behavior" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,5"/>
+                    <TextBlock Text="Customize the look and feel of the circular menu." FontSize="14" Foreground="#888" Margin="0,0,0,25"/>
+
+                    <TextBlock Text="Color Theme" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <ComboBox x:Name="SettingsThemeComboBox" SelectionChanged="Settings_Changed" FontSize="15" Padding="8" Margin="0,0,0,20">
+                        <ComboBoxItem Content="Cyberpunk Cyan" Tag="Cyberpunk Cyan"/>
+                        <ComboBoxItem Content="Crimson Red" Tag="Crimson Red"/>
+                        <ComboBoxItem Content="Toxic Green" Tag="Toxic Green"/>
+                        <ComboBoxItem Content="Royal Purple" Tag="Royal Purple"/>
+                        <ComboBoxItem Content="Amethyst" Tag="Amethyst"/>
+                    </ComboBox>
+
+                    <TextBlock Text="Animation Style" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <ComboBox x:Name="SettingsAnimationComboBox" SelectionChanged="Settings_Changed" FontSize="15" Padding="8" Margin="0,0,0,20">
+                        <ComboBoxItem Content="Smooth (Ease Out)" Tag="Smooth"/>
+                        <ComboBoxItem Content="Bouncy (Elastic)" Tag="Elastic"/>
+                        <ComboBoxItem Content="Linear" Tag="Linear"/>
+                        <ComboBoxItem Content="Overshoot (Back)" Tag="Back"/>
+                        <ComboBoxItem Content="Cubic (Fast to slow)" Tag="Cubic"/>
+                        <ComboBoxItem Content="Bounce (Ball drop)" Tag="Bounce"/>
+                    </ComboBox>
+                </StackPanel>
+            </ScrollViewer>
         </TabItem>
         </TabControl>
 

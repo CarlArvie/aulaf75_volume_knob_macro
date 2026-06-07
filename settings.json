@@ -1,5 +1,8 @@
 {
-  "CenterTitle": "Aula F75",
-  "SelectKey": "PgUp",
-  "BackKey": "PgDn"
+  "centerTitle": "AULA",
+  "centerImagePath": "Images\\bcb7bbc2-f52e-4d12-bc4a-b3dd0b1436d2.png",
+  "theme": "Royal Purple",
+  "animationEasing": "Back",
+  "selectKey": "PgUp",
+  "backKey": "PgDn"
 }
