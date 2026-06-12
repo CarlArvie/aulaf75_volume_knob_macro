@@ -115,17 +115,17 @@ namespace MacroUI.ViewModels
             {
                 string trigger = entry.Trigger.Replace(":", "`:");
                 string ahkOptions = entry.MatchTypedCase ? "" : "C";
-                ahkContent.AppendLine($":{ahkOptions}:{trigger}::");
+                ahkContent.AppendLine($":{ahkOptions}:{trigger}:: {{");
                 if (!string.IsNullOrWhiteSpace(entry.Replacement))
                 {
                     string replacement = entry.Replacement.Replace("`", "``").Replace("\r", "`r").Replace("\n", "`n").Replace("\"", "\"\"");
-                    ahkContent.AppendLine($"SendAsPaste(\"{replacement}\")");
+                    ahkContent.AppendLine($"    SendAsPaste(\"{replacement}\")");
                 }
                 if (!string.IsNullOrWhiteSpace(entry.ImagePath))
                 {
-                    ahkContent.AppendLine($"PasteImage(\"{entry.ImagePath.Replace("\\", "\\\\")}\")");
+                    ahkContent.AppendLine($"    PasteImage(\"{entry.ImagePath.Replace("\\", "\\\\")}\")");
                 }
-                ahkContent.AppendLine("return");
+                ahkContent.AppendLine("}");
             }
             System.IO.File.WriteAllText(ahkPath, ahkContent.ToString(), System.Text.Encoding.UTF8);
 
@@ -140,14 +140,14 @@ namespace MacroUI.ViewModels
                 {
                     if (node.MacroType != "Category" && !string.IsNullOrWhiteSpace(node.TriggerHotkey) && !string.IsNullOrWhiteSpace(node.Action))
                     {
-                        customHotkeysContent.AppendLine($"{node.TriggerHotkey}::");
+                        customHotkeysContent.AppendLine($"{node.TriggerHotkey}:: {{");
                         if (node.Action.StartsWith("send:"))
-                            customHotkeysContent.AppendLine($"SendInput, {node.Action.Substring(5)}");
+                            customHotkeysContent.AppendLine($"    Send(\"{node.Action.Substring(5)}\")");
                         else if (node.Action.StartsWith("run:"))
-                            customHotkeysContent.AppendLine($"Run, {node.Action.Substring(4)}");
+                            customHotkeysContent.AppendLine($"    Run(\"{node.Action.Substring(4)}\")");
                         else if (node.Action.StartsWith("media:"))
-                            customHotkeysContent.AppendLine($"Send, {{{node.Action.Substring(6)}}}");
-                        customHotkeysContent.AppendLine("return\n");
+                            customHotkeysContent.AppendLine($"    Send(\"{{{node.Action.Substring(6)}}}\")");
+                        customHotkeysContent.AppendLine("}\n");
                     }
                     if (node.Children != null) scanHotkeys(node.Children);
                 }
