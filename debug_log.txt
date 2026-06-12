@@ -1,0 +1,13 @@
+OnStartup started.
+OnStartup finished.
+OnStartup started.
+OnStartup finished.
+OnStartup started.
+OnStartup finished.
+OnStartup started.
+OnStartup finished.
+OnStartup started.
+OnStartup finished.
+OnStartup started.
+OnStartup finished.
+OnExit called. Exit code: 0

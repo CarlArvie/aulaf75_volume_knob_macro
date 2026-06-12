@@ -46,6 +46,12 @@ namespace MacroUI.ViewModels
             set { _settings.EnableGameMode = value; OnPropertyChanged(); }
         }
 
+        public bool EnableAutoSelect
+        {
+            get => _settings.EnableAutoSelect;
+            set { _settings.EnableAutoSelect = value; OnPropertyChanged(); }
+        }
+
         public bool EnableAudio
         {
             get => _settings.EnableAudio;

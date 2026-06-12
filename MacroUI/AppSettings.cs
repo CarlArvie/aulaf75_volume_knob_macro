@@ -26,6 +26,9 @@ namespace MacroUI
         [JsonPropertyName("enableGameMode")]
         public bool EnableGameMode { get; set; } = false;
 
+        [JsonPropertyName("enableAutoSelect")]
+        public bool EnableAutoSelect { get; set; } = true;
+
         [JsonPropertyName("enableAudio")]
         public bool EnableAudio { get; set; } = true;
 

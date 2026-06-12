@@ -1,6 +1,7 @@
 <Window x:Class="MacroUI.ConfigWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
         Title="Aula Macro Configuration" Height="550" Width="900"
         WindowStartupLocation="CenterScreen"
         Background="#1E1E1E" Foreground="White"
@@ -253,7 +254,15 @@
                                         <TextBlock Text="Raw AutoHotkey Script" FontSize="14" FontWeight="SemiBold"/>
                                         <TextBlock Text="❓" FontSize="12" Margin="5,0,0,0" VerticalAlignment="Center" ToolTip="Write a full, multi-line AutoHotkey script. It will be saved to a temporary file and executed natively."/>
                                     </StackPanel>
-                                    <TextBox x:Name="RawAHKTextBox" TextChanged="RawField_TextChanged" FontSize="14" Padding="10" AcceptsReturn="True" Height="150" VerticalScrollBarVisibility="Auto" FontFamily="Consolas" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                    <Border BorderBrush="#444" BorderThickness="1" Margin="0,5,0,0" Height="200">
+                                        <avalonEdit:TextEditor x:Name="RawAHKEditor" 
+                                                               FontFamily="Consolas" 
+                                                               FontSize="14" 
+                                                               ShowLineNumbers="True" 
+                                                               Background="#1E1E1E" 
+                                                               Foreground="#D4D4D4"
+                                                               TextChanged="RawAHKEditor_TextChanged"/>
+                                    </Border>
                                 </StackPanel>
 
                                 <StackPanel x:Name="SystemCommandPanel" Visibility="Collapsed">
@@ -420,6 +429,7 @@
                         </Grid>
                     </StackPanel>
                     <TextBlock Text="Performance &amp; Security" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,10,0,5"/>
+                    <CheckBox x:Name="EnableAutoSelectCheckBox" Content="⏱️ Enable Auto-Select (Timeout)" IsChecked="{Binding EnableAutoSelect, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Foreground="#FFF" ToolTip="Automatically executes the selected macro after half a second of inactivity." Margin="0,5,0,5"/>
                     <CheckBox x:Name="EnableGameModeCheckBox" Content="🎮 Enable Fullscreen Game Mode" IsChecked="{Binding EnableGameMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Foreground="#FFF" ToolTip="Automatically suspends macros when a fullscreen application (like a game) is in focus." Margin="0,5,0,20"/>
 
                     <TextBlock Text="Library Management" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,30,0,5"/>

@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="AutoHotkey" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+    <Color name="Comment" foreground="Green" />
+    <Color name="String" foreground="Orange" />
+    <Color name="Variable" foreground="LightBlue" />
+    <Color name="Keywords" foreground="DodgerBlue" fontWeight="bold" />
+    <Color name="Commands" foreground="DeepSkyBlue" />
+
+    <RuleSet>
+        <Span color="Comment" begin=";" />
+        <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+        
+        <Span color="String">
+            <Begin>"</Begin>
+            <End>"</End>
+            <RuleSet>
+                <Span begin="\\\"" end="" />
+            </RuleSet>
+        </Span>
+
+        <Span color="Variable">
+            <Begin>%</Begin>
+            <End>%</End>
+        </Span>
+
+        <Keywords color="Keywords">
+            <Word>If</Word>
+            <Word>Else</Word>
+            <Word>Loop</Word>
+            <Word>While</Word>
+            <Word>Return</Word>
+            <Word>Break</Word>
+            <Word>Continue</Word>
+            <Word>Global</Word>
+            <Word>Local</Word>
+            <Word>Static</Word>
+            <Word>True</Word>
+            <Word>False</Word>
+        </Keywords>
+
+        <Keywords color="Commands">
+            <Word>Send</Word>
+            <Word>SendInput</Word>
+            <Word>SendPlay</Word>
+            <Word>SendEvent</Word>
+            <Word>SendRaw</Word>
+            <Word>Sleep</Word>
+            <Word>Run</Word>
+            <Word>RunWait</Word>
+            <Word>MsgBox</Word>
+            <Word>InputBox</Word>
+            <Word>ToolTip</Word>
+            <Word>FileAppend</Word>
+            <Word>FileRead</Word>
+            <Word>FileReadLine</Word>
+            <Word>FileDelete</Word>
+            <Word>FileCopy</Word>
+            <Word>FileMove</Word>
+            <Word>RegRead</Word>
+            <Word>RegWrite</Word>
+            <Word>WinActivate</Word>
+            <Word>WinWait</Word>
+            <Word>WinWaitActive</Word>
+            <Word>WinClose</Word>
+            <Word>WinHide</Word>
+            <Word>WinShow</Word>
+            <Word>DllCall</Word>
+            <Word>SetTimer</Word>
+            <Word>StringReplace</Word>
+            <Word>StringSplit</Word>
+            <Word>StringTrimLeft</Word>
+            <Word>StringTrimRight</Word>
+            <Word>PixelSearch</Word>
+            <Word>ImageSearch</Word>
+            <Word>Click</Word>
+            <Word>MouseClick</Word>
+            <Word>MouseClickDrag</Word>
+            <Word>MouseMove</Word>
+            <Word>KeyWait</Word>
+        </Keywords>
+    </RuleSet>
+</SyntaxDefinition>

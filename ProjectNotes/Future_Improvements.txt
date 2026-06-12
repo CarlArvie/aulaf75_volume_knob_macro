@@ -1,0 +1,23 @@
+======================================================
+         Aula F70 Macro - Room for Improvement
+======================================================
+
+1. Architecture & Code Structure (C# WPF)
+   - Heavy Code-Behind: Files like ConfigWindow.xaml.cs and App.xaml.cs handle a lot of business logic, JSON parsing, and process management. Moving this logic into dedicated Services (e.g., SettingsService, IpcService) and adhering fully to the MVVM pattern (using ICommands instead of Click events) would make the codebase cleaner and easier to test.
+   - IPC Separation: The Named Pipe server logic in App.xaml.cs should be abstracted into its own class so it can be independently tested and managed.
+
+2. AutoHotkey Modernization
+   - Upgrade to AHK v2: The backend script (MacroEngine.ahk) currently uses AutoHotkey v1.1. AHK v2 introduces proper object-oriented syntax, better error handling, and removes legacy quirks. Migrating would make the script more robust and easier to maintain.
+
+3. Resilience & Error Handling
+   - Auto-Recovery: Currently, if the AHK process crashes or is closed, the C# app might lose connection. Implementing a watchdog timer or auto-reconnect logic in C# to silently restart the AHK script would improve reliability.
+
+4. User Interface (UI/UX)
+   - Settings Layout: As more features are added (Auto-Select, Game Mode, Audio, etc.), the ConfigWindow is getting crowded. Implementing a Tabbed Interface (e.g., "General", "Hotkeys", "Macros", "Audio") would improve navigation.
+   - Modern Styling: Integrating a UI toolkit like MaterialDesignInXAML could give the application a more premium, modern feel.
+
+5. Test Coverage (TDD)
+   - Expand Unit Tests: We currently have tests for the MacroStateManager. We should expand this to cover JSON serialization, ViewModels, and IPC message formatting.
+
+6. Deployment & Distribution
+   - Installer/Bundling: Currently, the project runs as a mix of compiled C# executables and loose .ahk scripts. Using a tool like Inno Setup to create a single setup.exe, or compiling the AHK script into an executable, would make it much easier to distribute to other users.

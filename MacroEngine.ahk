@@ -29,7 +29,7 @@ Process, Exist, MacroUI.exe
 if (!ErrorLevel)
 {
     FileAppend, CheckUI failed to find MacroUI.exe. ErrorLevel: %ErrorLevel%`n, macro_debug.txt
-    ; ExitApp
+    ExitApp
 }
 return
 
@@ -188,18 +188,18 @@ $Volume_Down::
     }
 return
 
-SelectAction:
+BackAction:
     if (MacroMode) {
-        SendCommand("SELECT")
+        SendCommand("BACK")
     } else {
         key := StrReplace(A_ThisHotkey, "$", "")
         Send {%key%}
     }
 return
 
-BackAction:
+SelectAction:
     if (MacroMode) {
-        SendCommand("BACK")
+        SendCommand("SELECT")
     } else {
         key := StrReplace(A_ThisHotkey, "$", "")
         Send {%key%}

@@ -6,7 +6,8 @@
   "selectKey": "PgUp",
   "backKey": "PgDn",
   "enableGameMode": false,
+  "enableAutoSelect": false,
   "enableAudio": true,
-  "tickSoundPath": "C:\\Users\\carla\\Downloads\\test.mp3",
-  "tickSoundVolume": 0.30503792801233043
+  "tickSoundPath": "C:\\Users\\carla\\Music\\myinstants.mp3",
+  "tickSoundVolume": 1
 }

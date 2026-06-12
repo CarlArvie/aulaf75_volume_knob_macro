@@ -11,6 +11,9 @@ using Microsoft.Win32;
 using System.IO.Compression;
 using System.Windows.Input;
 using MacroUI.ViewModels;
+using ICSharpCode.AvalonEdit.Highlighting;
+using ICSharpCode.AvalonEdit.Highlighting.Xshd;
+using System.Xml;
 
 namespace MacroUI
 {
@@ -32,16 +35,35 @@ namespace MacroUI
             LoadData();
             MacroTreeView.ItemsSource = TreeVM.RootNodes;
             TreeVM.PropertyChanged += (s, e) => { if (e.PropertyName == "CanUndo") UpdateUndoButton(); };
+            
+            // Load custom AHK syntax highlighting for AvalonEdit
+            try
+            {
+                using (var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("MacroUI.AHK.xshd"))
+                {
+                    if (stream != null)
+                    {
+                        using (var reader = new XmlTextReader(stream))
+                        {
+                            RawAHKEditor.SyntaxHighlighting = HighlightingLoader.Load(reader, HighlightingManager.Instance);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error loading AHK syntax highlighting: " + ex.Message);
+            }
         }
 
         private void LoadData()
         {
             // Load Macros
-            string jsonPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "macros.json"));
+            string jsonPath = App.GetProjectRootFile("macros.json");
             TreeVM.LoadMacros(jsonPath);
             
             // Load Hotstrings
-            string hotstringsPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "hotstrings.json"));
+            string hotstringsPath = App.GetProjectRootFile("hotstrings.json");
             
             Hotstrings.Clear();
             if (File.Exists(hotstringsPath))
@@ -69,7 +91,7 @@ namespace MacroUI
             }
             
             // Load Settings
-            string settingsPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "settings.json"));
+            string settingsPath = App.GetProjectRootFile("settings.json");
             if (File.Exists(settingsPath))
             {
                 try
@@ -161,7 +183,7 @@ namespace MacroUI
                     else if (_selectedNode.MacroType == "RawAHK")
                     {
                         RawAHKPanel.Visibility = Visibility.Visible;
-                        RawAHKTextBox.Text = _selectedNode.RawActionValue;
+                        RawAHKEditor.Text = _selectedNode.RawActionValue ?? "";
                     }
                     else if (_selectedNode.MacroType == "SystemCommand")
                     {
@@ -235,8 +257,16 @@ namespace MacroUI
                 _selectedNode.RawActionValue = ProgramTextBox.Text;
             else if (_selectedNode.MacroType == "SendText" && TextTextBox.IsFocused)
                 _selectedNode.RawActionValue = TextTextBox.Text;
-            else if (_selectedNode.MacroType == "RawAHK" && RawAHKTextBox.IsFocused)
-                _selectedNode.RawActionValue = RawAHKTextBox.Text;
+        }
+
+        private void RawAHKEditor_TextChanged(object sender, EventArgs e)
+        {
+            if (_isUpdatingUI || _selectedNode == null) return;
+            
+            if (_selectedNode.MacroType == "RawAHK")
+            {
+                _selectedNode.RawActionValue = RawAHKEditor.Text;
+            }
         }
 
         private void SystemCommandComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -524,7 +554,7 @@ namespace MacroUI
         private void SaveAll_Click(object sender, RoutedEventArgs e)
         {
             // --- 1. Save Macros ---
-            string macrosPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "macros.json"));
+            string macrosPath = App.GetProjectRootFile("macros.json");
             TreeVM.SaveMacros(macrosPath);
 
             var options = new JsonSerializerOptions { WriteIndented = true };
@@ -532,8 +562,9 @@ namespace MacroUI
             // --- 2. Save Settings ---
             _appSettings.SelectKey = SelectKeyComboBox.Text;
             _appSettings.BackKey = BackKeyComboBox.Text;
+            _appSettings.EnableAutoSelect = EnableAutoSelectCheckBox.IsChecked ?? true;
             _appSettings.EnableGameMode = EnableGameModeCheckBox.IsChecked ?? false;
-            string settingsPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "settings.json"));
+            string settingsPath = App.GetProjectRootFile("settings.json");
             File.WriteAllText(settingsPath, JsonSerializer.Serialize(_appSettings, options));
 
             // Also save as settings.ini for AHK to easily read
@@ -559,7 +590,7 @@ namespace MacroUI
             }
 
             string hotstringsJson = JsonSerializer.Serialize(secureCopies, options);
-            string hotstringsPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "hotstrings.json"));
+            string hotstringsPath = App.GetProjectRootFile("hotstrings.json");
             File.WriteAllText(hotstringsPath, hotstringsJson);
 
             // Generate hotstrings.ahk
@@ -651,13 +682,9 @@ namespace MacroUI
 
         private void NotifyMainWindow()
         {
-            foreach (Window window in System.Windows.Application.Current.Windows)
+            if (System.Windows.Application.Current is App app)
             {
-                if (window is MainWindow mainWindow)
-                {
-                    mainWindow.ReloadConfig();
-                    break;
-                }
+                app.LoadConfig();
             }
         }
 
@@ -823,7 +850,6 @@ namespace MacroUI
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
-            App.MinimizeMemoryFootprint();
         }
     }
 

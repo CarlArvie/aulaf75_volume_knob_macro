@@ -1,0 +1,12 @@
+OnStartup started.
+OnStartup finished.
+OnExit called. Exit code: 0
+OnStartup started.
+OnStartup finished.
+OnStartup started.
+OnStartup finished.
+OnStartup started.
+OnStartup finished.
+OnExit called. Exit code: 0
+OnExit called. Exit code: 0
+OnExit called. Exit code: 0
