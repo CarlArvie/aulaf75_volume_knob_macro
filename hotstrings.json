@@ -2,49 +2,43 @@
   {
     "Trigger": ".ec0",
     "Replacement": "carlarvie0@gmail.com",
-    "MatchTypedCase": true,
     "ImagePath": null,
-    "IsVisible": true,
+    "MatchTypedCase": true,
     "IsSecure": false
   },
   {
     "Trigger": ".ea",
     "Replacement": "arvielambit@gmail.com",
-    "MatchTypedCase": true,
     "ImagePath": null,
-    "IsVisible": true,
+    "MatchTypedCase": true,
     "IsSecure": false
   },
   {
     "Trigger": ".ec09",
     "Replacement": "carlarvie09@gmail.com",
-    "MatchTypedCase": true,
     "ImagePath": null,
-    "IsVisible": true,
+    "MatchTypedCase": true,
     "IsSecure": false
   },
   {
     "Trigger": ".ec9",
     "Replacement": "carlarvie9@gmail.com",
-    "MatchTypedCase": true,
     "ImagePath": null,
-    "IsVisible": true,
+    "MatchTypedCase": true,
     "IsSecure": false
   },
   {
     "Trigger": ".eax9",
     "Replacement": "aciexie9@gmail.com",
-    "MatchTypedCase": true,
     "ImagePath": null,
-    "IsVisible": true,
+    "MatchTypedCase": true,
     "IsSecure": false
   },
   {
     "Trigger": ".test",
     "Replacement": "hello [CURSOR], janna aira",
-    "MatchTypedCase": true,
     "ImagePath": null,
-    "IsVisible": true,
+    "MatchTypedCase": true,
     "IsSecure": false
   }
 ]

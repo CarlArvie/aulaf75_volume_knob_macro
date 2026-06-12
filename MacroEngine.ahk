@@ -155,10 +155,11 @@ PasteImage(imagePath) {
 
 ; We use a custom variable as a toggle for Macro Mode.
 ; Press PgUp and PgDn together to turn Macro Mode ON or OFF.
-global MacroMode := false
+IniRead, MacroMode, %A_Temp%\AulaMacroState.ini, State, MacroMode, 1
 
 ~PgUp & PgDn::
     MacroMode := !MacroMode
+    IniWrite, %MacroMode%, %A_Temp%\AulaMacroState.ini, State, MacroMode
     if (MacroMode) {
         ToolTip, Macro Mode ON
     } else {

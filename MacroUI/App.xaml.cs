@@ -3,16 +3,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Media;
 using System.Windows.Threading;
 using MacroUI.Services;
+using MacroUI.ViewModels;
 using Application = System.Windows.Application;
 
 namespace MacroUI
@@ -41,22 +40,12 @@ namespace MacroUI
         [DllImport("user32.dll")]
         static extern int GetSystemMetrics(int nIndex);
 
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, ref COPYDATASTRUCT lParam);
-
         const int SM_CXSCREEN = 0;
         const int SM_CYSCREEN = 1;
-        public const uint WM_COPYDATA = 0x004A;
         private uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct COPYDATASTRUCT { public IntPtr dwData; public int cbData; public IntPtr lpData; }
 
         private NotifyIcon _notifyIcon;
         private Process _ahkProcess;
@@ -65,17 +54,20 @@ namespace MacroUI
         private bool _isSuspendedByGameMode = false;
         
         public MacroStateManager StateManager { get; private set; }
-        public AppSettings Settings { get; private set; } = new AppSettings();
+        public AppSettings Settings { get; private set; }
         private MainWindow _overlayWindow;
         private List<MediaPlayer> _tickSounds = new List<MediaPlayer>();
         private int _currentSoundIndex = 0;
 
-        // MinimizeMemoryFootprint removed for performance optimization. Let the .NET GC handle memory.
+        private IIpcService _ipcService;
+        private ISettingsService _settingsService;
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            File.AppendAllText("debug_log.txt", "OnStartup started.\n");
             base.OnStartup(e);
+
+            _settingsService = new SettingsService();
+            _ipcService = new IpcService();
 
             AppDomain.CurrentDomain.UnhandledException += (s, args) => 
             {
@@ -86,14 +78,10 @@ namespace MacroUI
                 File.WriteAllText("crash_log2.txt", args.Exception.ToString());
             };
             
-            // Prevent WPF from shutting down when there are no windows
             this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-            // Load Configuration first (this initializes StateManager)
             LoadConfig();
-
             StartAhkEngine();
-
 
             _notifyIcon = new NotifyIcon { Icon = SystemIcons.Application, Visible = true, Text = "Aula Macro Configuration" };
             var menu = new ContextMenuStrip();
@@ -116,10 +104,13 @@ namespace MacroUI
             _watchdogTimer.Tick += WatchdogTimer_Tick;
             _watchdogTimer.Start();
 
-            Task.Run(StartNamedPipeServer);
-            File.AppendAllText("debug_log.txt", "OnStartup finished.\n");
-            
-            // Removed aggressive memory optimization call
+            _ipcService.StartServerAsync((line, activeProcess) =>
+            {
+                Dispatcher.Invoke(() => 
+                {
+                    StateManager.HandleCommand(line, activeProcess);
+                });
+            });
         }
 
         private void StartAhkEngine()
@@ -148,7 +139,6 @@ namespace MacroUI
                 if (File.Exists(fullPath)) return fullPath;
             }
             
-            // Fallback to expecting it in current directory if not found
             return Path.Combine(Environment.CurrentDirectory, fileName);
         }
 
@@ -157,15 +147,8 @@ namespace MacroUI
             try
             {
                 string jsonPath = GetProjectRootFile("macros.json");
-                if (!File.Exists(jsonPath))
-                {
-                    System.Windows.MessageBox.Show($"Could not find file \"{jsonPath}\"", "Error loading config");
-                    return;
-                }
-                
-                string json = File.ReadAllText(jsonPath);
-                var rootDict = JsonSerializer.Deserialize<Dictionary<string, MacroNode>>(json);
-                var rootNode = new MacroNode { Name = "Root", Children = rootDict };
+                var macros = _settingsService.LoadMacros(jsonPath);
+                var rootNode = new MacroNode { Name = "Root", Children = macros };
                 
                 if (StateManager != null)
                 {
@@ -180,11 +163,8 @@ namespace MacroUI
                 StateManager.OnExecuteAction += StateManager_OnExecuteAction;
 
                 string settingsPath = GetProjectRootFile("settings.json");
-                if (File.Exists(settingsPath))
-                {
-                    var settings = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(settingsPath));
-                    if (settings != null) Settings = settings;
-                }
+                Settings = _settingsService.LoadSettings(settingsPath);
+                
                 StateManager.EnableAutoSelect = Settings.EnableAutoSelect;
                 
                 try 
@@ -208,36 +188,6 @@ namespace MacroUI
             }
         }
 
-        private async Task StartNamedPipeServer()
-        {
-            while (true)
-            {
-                try
-                {
-                    using (var server = new NamedPipeServerStream("MacroUIPipe", PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.Asynchronous))
-                    {
-                        await server.WaitForConnectionAsync();
-                        using (var reader = new StreamReader(server))
-                        using (var writer = new StreamWriter(server) { AutoFlush = true })
-                        {
-                            while (!reader.EndOfStream)
-                            {
-                                string line = await reader.ReadLineAsync();
-                                if (line == null) break;
-
-                                Dispatcher.Invoke(() => 
-                                {
-                                    string activeProcess = GetForegroundProcessName();
-                                    StateManager.HandleCommand(line, activeProcess);
-                                });
-                            }
-                        }
-                    }
-                }
-                catch { await Task.Delay(1000); }
-            }
-        }
-
         private void StateManager_OnVisibilityChanged()
         {
             if (StateManager.IsVisible)
@@ -255,8 +205,6 @@ namespace MacroUI
                 {
                     _overlayWindow.AnimateHideAndClose();
                     _overlayWindow = null;
-                    
-                    // Removed aggressive memory optimization call
                 }
             }
         }
@@ -282,7 +230,7 @@ namespace MacroUI
 
         private void StateManager_OnExecuteAction(string action)
         {
-            SendIPCMessage(action);
+            _ipcService.SendMessage(action);
         }
 
         private string GetForegroundProcessName()
@@ -321,7 +269,7 @@ namespace MacroUI
         {
             if (!Settings.EnableGameMode) 
             {
-                if (_isSuspendedByGameMode) { SendIPCMessage("suspend:off"); _isSuspendedByGameMode = false; }
+                if (_isSuspendedByGameMode) { _ipcService.SendMessage("suspend:off"); _isSuspendedByGameMode = false; }
                 return;
             }
 
@@ -336,28 +284,9 @@ namespace MacroUI
                 string processName = GetForegroundProcessName() ?? "";
                 if (processName.Equals("explorer.exe", StringComparison.OrdinalIgnoreCase)) isFullscreen = false;
 
-                if (isFullscreen && !_isSuspendedByGameMode) { SendIPCMessage("suspend:on"); _isSuspendedByGameMode = true; }
-                else if (!isFullscreen && _isSuspendedByGameMode) { SendIPCMessage("suspend:off"); _isSuspendedByGameMode = false; }
+                if (isFullscreen && !_isSuspendedByGameMode) { _ipcService.SendMessage("suspend:on"); _isSuspendedByGameMode = true; }
+                else if (!isFullscreen && _isSuspendedByGameMode) { _ipcService.SendMessage("suspend:off"); _isSuspendedByGameMode = false; }
             }
-        }
-
-        private void SendIPCMessage(string message)
-        {
-            try
-            {
-                IntPtr hWnd = FindWindow("AutoHotkey", "AulaMacroEngine_IPC");
-                if (hWnd != IntPtr.Zero)
-                {
-                    byte[] bytes = Encoding.Unicode.GetBytes(message + "\0");
-                    COPYDATASTRUCT cds = new COPYDATASTRUCT { dwData = IntPtr.Zero, cbData = bytes.Length };
-                    IntPtr ptr = Marshal.AllocHGlobal(bytes.Length);
-                    Marshal.Copy(bytes, 0, ptr, bytes.Length);
-                    cds.lpData = ptr;
-                    SendMessage(hWnd, WM_COPYDATA, IntPtr.Zero, ref cds);
-                    Marshal.FreeHGlobal(ptr);
-                }
-            }
-            catch { }
         }
 
         private void OpenConfigWindow()
@@ -371,7 +300,7 @@ namespace MacroUI
                     return;
                 }
             }
-            new ConfigWindow().Show();
+            new ConfigWindow(_settingsService).Show();
         }
 
         private void ShutdownApp()
@@ -383,7 +312,6 @@ namespace MacroUI
 
         protected override void OnExit(ExitEventArgs e)
         {
-            File.AppendAllText("debug_log.txt", $"OnExit called. Exit code: {e.ApplicationExitCode}\n");
             _gameModeTimer?.Stop();
             _watchdogTimer?.Stop();
             if (_ahkProcess != null) { try { if (!_ahkProcess.HasExited) _ahkProcess.Kill(); } catch { } }

@@ -131,67 +131,52 @@ namespace MacroUI.ViewModels
             }
         }
 
-        public void LoadMacros(string jsonPath)
+        public ICommand AddCategoryCommand => new RelayCommand(_ => AddNode(true));
+        public ICommand AddMacroCommand => new RelayCommand(_ => AddNode(false));
+        public ICommand DeleteNodeCommand => new RelayCommand(_ => DeleteSelectedNode(), _ => SelectedNode != null);
+
+        private void AddNode(bool isCategory)
         {
-            if (File.Exists(jsonPath))
+            var name = isCategory ? "New Category" : "New Macro";
+            var macroNode = new MacroNode { Name = name };
+            if (isCategory) macroNode.Children = new Dictionary<string, MacroNode>();
+            else macroNode.Action = "send:";
+
+            var node = new TreeNodeViewModel(name, macroNode, SelectedNode);
+
+            if (SelectedNode != null && SelectedNode.MacroType == "Category")
             {
-                try
-                {
-                    string json = File.ReadAllText(jsonPath);
-                    var rootDict = JsonSerializer.Deserialize<Dictionary<string, MacroNode>>(json);
-                    RootNodes.Clear();
-                    if (rootDict != null)
-                    {
-                        foreach (var kvp in rootDict)
-                        {
-                            DecryptNodeRecursive(kvp.Value);
-                            RootNodes.Add(new TreeNodeViewModel(kvp.Key, kvp.Value, null));
-                        }
-                    }
-                }
-                catch { }
+                var parentList = SelectedNode.Children;
+                parentList.Add(node);
+                SelectedNode.IsExpanded = true;
+                PushUndo(() => parentList.Remove(node));
             }
+            else
+            {
+                var parentList = SelectedNode?.Parent?.Children ?? RootNodes;
+                int index = SelectedNode != null ? parentList.IndexOf(SelectedNode) + 1 : parentList.Count;
+                parentList.Insert(index, node);
+                PushUndo(() => parentList.Remove(node));
+            }
+            SelectedNode = node;
         }
 
-        public void SaveMacros(string jsonPath)
+        private void DeleteSelectedNode()
         {
-            var rootDict = new Dictionary<string, MacroNode>();
-            foreach (var node in RootNodes)
-            {
-                var macroNode = node.ToMacroNode();
-                EncryptNodeRecursive(macroNode);
-                rootDict[node.Key] = macroNode;
-            }
+            if (SelectedNode == null) return;
+            var parentList = SelectedNode.Parent?.Children ?? RootNodes;
+            int index = parentList.IndexOf(SelectedNode);
+            var nodeToDelete = SelectedNode;
+            
+            parentList.Remove(SelectedNode);
+            SelectedNode = null;
 
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            string macrosJson = JsonSerializer.Serialize(rootDict, options);
-            File.WriteAllText(jsonPath, macrosJson);
+            PushUndo(() =>
+            {
+                parentList.Insert(index, nodeToDelete);
+            });
         }
 
-        private void EncryptNodeRecursive(MacroNode node)
-        {
-            if (node.IsSecure && !string.IsNullOrEmpty(node.Action))
-            {
-                node.Action = CryptoHelper.Encrypt(node.Action);
-            }
-            if (node.Children != null)
-            {
-                foreach (var child in node.Children.Values)
-                    EncryptNodeRecursive(child);
-            }
-        }
-
-        private void DecryptNodeRecursive(MacroNode node)
-        {
-            if (node.IsSecure && !string.IsNullOrEmpty(node.Action))
-            {
-                node.Action = CryptoHelper.Decrypt(node.Action);
-            }
-            if (node.Children != null)
-            {
-                foreach (var child in node.Children.Values)
-                    DecryptNodeRecursive(child);
-            }
-        }
+        // Removed internal Load/Save methods, they are now in ISettingsService
     }
 }

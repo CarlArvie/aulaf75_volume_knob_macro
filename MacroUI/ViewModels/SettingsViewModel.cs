@@ -40,6 +40,18 @@ namespace MacroUI.ViewModels
             set { _settings.AnimationEasing = value; OnPropertyChanged(); }
         }
 
+        public string SelectKey
+        {
+            get => _settings.SelectKey;
+            set { _settings.SelectKey = value; OnPropertyChanged(); }
+        }
+
+        public string BackKey
+        {
+            get => _settings.BackKey;
+            set { _settings.BackKey = value; OnPropertyChanged(); }
+        }
+
         public bool EnableGameMode
         {
             get => _settings.EnableGameMode;

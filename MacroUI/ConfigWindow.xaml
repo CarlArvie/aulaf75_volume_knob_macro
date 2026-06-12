@@ -126,10 +126,10 @@
                                             <ContextMenu>
                                                 <MenuItem Header="✏️ Edit" Click="EditNode_Click"/>
                                                 <Separator/>
-                                                <MenuItem Header="📁 Add Category" Click="AddCategory_Click"/>
-                                                <MenuItem Header="⚡ Add Macro" Click="AddMacro_Click"/>
+                                                <MenuItem Header="📁 Add Category" Command="{Binding DataContext.TreeVM.AddCategoryCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                <MenuItem Header="⚡ Add Macro" Command="{Binding DataContext.TreeVM.AddMacroCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
                                                 <Separator/>
-                                                <MenuItem Header="🗑️ Delete" Click="Delete_Click" Foreground="#C50B0B"/>
+                                                <MenuItem Header="🗑️ Delete" Command="{Binding DataContext.TreeVM.DeleteNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="#C50B0B"/>
                                             </ContextMenu>
                                         </StackPanel.ContextMenu>
                                         <TextBlock Text="{Binding Icon}" Margin="0,0,8,0" FontSize="14" VerticalAlignment="Center"/>
@@ -142,8 +142,8 @@
                     
                     <StackPanel Grid.Row="3" Orientation="Vertical" HorizontalAlignment="Stretch" Margin="0,15,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Button Content="📁 + Category" Click="AddCategory_Click"/>
-                            <Button Content="⚡ + Macro" Click="AddMacro_Click"/>
+                            <Button Content="📁 + Category" Command="{Binding DataContext.TreeVM.AddCategoryCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Button Content="⚡ + Macro" Command="{Binding DataContext.TreeVM.AddMacroCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
                         </StackPanel>
                         <TextBlock Text="Menu Center Title" FontSize="14" FontWeight="SemiBold" Foreground="#888" Margin="0,15,0,5" HorizontalAlignment="Center"/>
                         <TextBox x:Name="CenterTitleTextBox" Text="AULA" Width="200" HorizontalAlignment="Center" TextAlignment="Center" FontWeight="Bold" FontSize="16" Foreground="#007ACC" TextChanged="CenterTitle_TextChanged"/>
@@ -151,29 +151,11 @@
                         <TextBlock Text="Menu Center Logo" FontSize="14" FontWeight="SemiBold" Foreground="#888" Margin="0,15,0,5" HorizontalAlignment="Center"/>
                         <TextBlock x:Name="CenterLogoTextBlock" Text="No logo selected." FontSize="12" Foreground="#666" HorizontalAlignment="Center" Margin="0,0,0,5"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Button Content="🖼️ Browse Logo" Click="BrowseCenterLogo_Click" Padding="10,5" FontSize="12"/>
-                            <Button Content="❌ Clear Logo" Click="ClearCenterLogo_Click" Padding="10,5" FontSize="12" Background="#A22"/>
+                            <Button Content="🖼️ Browse Logo" Command="{Binding SettingsVM.SelectCenterImageCommand}" Padding="10,5" FontSize="12"/>
+                            <Button Content="❌ Clear Logo" Command="{Binding SettingsVM.ClearCenterImageCommand}" Padding="10,5" FontSize="12" Background="#A22"/>
                         </StackPanel>
 
-                        <TextBlock Text="Menu Select Key" FontSize="14" FontWeight="SemiBold" Foreground="#888" Margin="0,15,0,5" HorizontalAlignment="Center"/>
-                        <ComboBox x:Name="SelectKeyComboBox" Width="200" HorizontalAlignment="Center" IsEditable="True">
-                            <ComboBoxItem Content="LButton"/>
-                            <ComboBoxItem Content="RButton"/>
-                            <ComboBoxItem Content="MButton"/>
-                            <ComboBoxItem Content="Volume_Mute"/>
-                            <ComboBoxItem Content="Space"/>
-                            <ComboBoxItem Content="Enter"/>
-                        </ComboBox>
-                        
-                        <TextBlock Text="Menu Back Key" FontSize="14" FontWeight="SemiBold" Foreground="#888" Margin="0,10,0,5" HorizontalAlignment="Center"/>
-                        <ComboBox x:Name="BackKeyComboBox" Width="200" HorizontalAlignment="Center" IsEditable="True">
-                            <ComboBoxItem Content="LButton"/>
-                            <ComboBoxItem Content="RButton"/>
-                            <ComboBoxItem Content="MButton"/>
-                            <ComboBoxItem Content="Volume_Mute"/>
-                            <ComboBoxItem Content="Space"/>
-                            <ComboBoxItem Content="Enter"/>
-                        </ComboBox>
+
                     </StackPanel>
                 </Grid>
 
@@ -311,7 +293,7 @@
                                 </StackPanel>
 
                                 <Grid Margin="0,20,0,0">
-                                    <Button Content="🗑️ Delete Node" Background="#C50B0B" HorizontalAlignment="Left" Click="Delete_Click" Padding="20,12" FontSize="14"/>
+                                    <Button Content="🗑️ Delete Node" Background="#C50B0B" HorizontalAlignment="Left" Command="{Binding DataContext.TreeVM.DeleteNodeCommand, RelativeSource={RelativeSource AncestorType=Window}}" Padding="20,12" FontSize="14"/>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
@@ -338,7 +320,7 @@
                 <TextBlock Grid.Row="1" Text="🔍 Search Hotstrings..." IsHitTestVisible="False" Foreground="#888" Margin="8,8,0,0" x:Name="HotstringSearchPlaceholder"/>
 
                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                        <ItemsControl x:Name="HotstringsList" ItemsSource="{Binding Hotstrings, RelativeSource={RelativeSource AncestorType=Window}}">
+                        <ItemsControl x:Name="HotstringsList" ItemsSource="{Binding Hotstrings}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="#252526" BorderBrush="#333" BorderThickness="1" CornerRadius="6" Padding="15" Margin="0,0,0,15" Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
@@ -367,7 +349,7 @@
                                             </StackPanel>
                                         </StackPanel>
 
-                                        <Button Grid.Column="2" Content="🗑️ Delete" Background="#C50B0B" Foreground="White" Padding="12,8" VerticalAlignment="Center" Click="DeleteHotstring_Click" Cursor="Hand" Margin="0"/>
+                                        <Button Grid.Column="2" Content="🗑️ Delete" Background="#C50B0B" Foreground="White" Padding="12,8" VerticalAlignment="Center" Command="{Binding DataContext.DeleteHotstringCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Cursor="Hand" Margin="0"/>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -375,11 +357,11 @@
                     </ItemsControl>
                 </ScrollViewer>
                 
-                <Button Grid.Row="3" Content="➕ Add New Snippet" Background="#28A745" Foreground="White" Padding="20,12" FontWeight="Bold" FontSize="14" HorizontalAlignment="Left" Click="AddHotstring_Click" Margin="0,5,0,0"/>
+                <Button Grid.Row="3" Content="➕ Add New Snippet" Background="#28A745" Foreground="White" Padding="20,12" FontWeight="Bold" FontSize="14" HorizontalAlignment="Left" Command="{Binding AddHotstringCommand}" Margin="0,5,0,0"/>
             </Grid>
         </TabItem>
 
-        <TabItem x:Name="AestheticsTab" Header="🎨 Aesthetics">
+        <TabItem x:Name="AestheticsTab" Header="🎨 Appearance &amp; Audio" DataContext="{Binding SettingsVM}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="20" Width="400" HorizontalAlignment="Left">
                     <TextBlock Text="Global Aesthetics &amp; Behavior" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,5"/>
@@ -428,6 +410,38 @@
                             <Slider Grid.Column="1" Minimum="0" Maximum="1" SmallChange="0.05" LargeChange="0.1" Value="{Binding TickSoundVolume, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" ToolTip="Adjust the haptic feedback volume"/>
                         </Grid>
                     </StackPanel>
+
+
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <TabItem Header="⚙️ General Settings" DataContext="{Binding SettingsVM}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20" Width="400" HorizontalAlignment="Left">
+                    <TextBlock Text="Input &amp; Hotkeys" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,0,0,5"/>
+                    <TextBlock Text="Configure global keys used to navigate the radial menu." FontSize="14" Foreground="#888" Margin="0,0,0,20"/>
+                    
+                    <TextBlock Text="Menu Select Key" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <ComboBox x:Name="SelectKeyComboBox" Text="{Binding SelectKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" IsEditable="True" Margin="0,0,0,15">
+                        <ComboBoxItem Content="LButton"/>
+                        <ComboBoxItem Content="RButton"/>
+                        <ComboBoxItem Content="MButton"/>
+                        <ComboBoxItem Content="Volume_Mute"/>
+                        <ComboBoxItem Content="Space"/>
+                        <ComboBoxItem Content="Enter"/>
+                    </ComboBox>
+                    
+                    <TextBlock Text="Menu Back Key" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <ComboBox x:Name="BackKeyComboBox" Text="{Binding BackKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" IsEditable="True" Margin="0,0,0,20">
+                        <ComboBoxItem Content="LButton"/>
+                        <ComboBoxItem Content="RButton"/>
+                        <ComboBoxItem Content="MButton"/>
+                        <ComboBoxItem Content="Volume_Mute"/>
+                        <ComboBoxItem Content="Space"/>
+                        <ComboBoxItem Content="Enter"/>
+                    </ComboBox>
+
                     <TextBlock Text="Performance &amp; Security" FontSize="22" FontWeight="Bold" Foreground="#007ACC" Margin="0,10,0,5"/>
                     <CheckBox x:Name="EnableAutoSelectCheckBox" Content="⏱️ Enable Auto-Select (Timeout)" IsChecked="{Binding EnableAutoSelect, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Foreground="#FFF" ToolTip="Automatically executes the selected macro after half a second of inactivity." Margin="0,5,0,5"/>
                     <CheckBox x:Name="EnableGameModeCheckBox" Content="🎮 Enable Fullscreen Game Mode" IsChecked="{Binding EnableGameMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Foreground="#FFF" ToolTip="Automatically suspends macros when a fullscreen application (like a game) is in focus." Margin="0,5,0,20"/>
@@ -439,18 +453,16 @@
                         <Button Content="📦 Export Backup (.zip)" Background="#007ACC" Command="{Binding ExportBackupCommand}" Padding="15,8" Margin="0,0,10,0"/>
                         <Button Content="📥 Import Backup (.zip)" Background="#28A745" Command="{Binding ImportBackupCommand}" Padding="15,8"/>
                     </StackPanel>
-
                 </StackPanel>
             </ScrollViewer>
         </TabItem>
-
         </TabControl>
 
         <!-- Bottom Bar -->
         <Border Grid.Row="1" Background="#2D2D30" Padding="15,10" BorderBrush="#3E3E42" BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal">
-                <Button Content="💾 Save All Settings" Background="#007ACC" Click="SaveAll_Click" Padding="30,12" FontWeight="Bold" FontSize="15" Margin="0,0,15,0"/>
-                <Button x:Name="UndoButton" Content="↩️ Undo Delete" Background="#555" Click="Undo_Click" Padding="15,12" FontSize="14" Visibility="Collapsed"/>
+                <Button Content="💾 Save All Settings" Background="#007ACC" Command="{Binding SaveAllCommand}" Padding="30,12" FontWeight="Bold" FontSize="15" Margin="0,0,15,0"/>
+                <Button x:Name="UndoButton" Content="↩️ Undo Delete" Background="#555" Command="{Binding TreeVM.UndoCommand}" Padding="15,12" FontSize="14" Visibility="Collapsed"/>
             </StackPanel>
         </Border>
     </Grid>

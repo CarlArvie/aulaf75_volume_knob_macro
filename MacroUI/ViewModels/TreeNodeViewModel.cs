@@ -24,6 +24,13 @@ namespace MacroUI.ViewModels
             set { _isVisible = value; OnPropertyChanged(nameof(IsVisible)); }
         }
 
+        private bool _isExpanded;
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set { _isExpanded = value; OnPropertyChanged(nameof(IsExpanded)); }
+        }
+
         private string _name;
         public string Name
         {
